@@ -10,6 +10,7 @@ import { SFX, setMute, startHum, stopHum } from './audio.js';
 import { inp } from './input.js';
 import { makePlayer, updateAura } from './entities.js';
 import { resetLightBudget } from './world.js';
+import { updateLiquids } from './liquids.js';
 import { LEVELS, LEVEL_NAMES } from './levels.js';
 import { getLevelIntro, FINAL_SCENE, showCutscene, isCutsceneOpen } from './story.js';
 import { recordLevelComplete, unlockLevel, recordDeath } from './progress.js';
@@ -327,13 +328,20 @@ function updateMovers(t) {
   }
 }
 
-function hitPlayer(p, dmg) {
+/**
+ * Tehlikeler artik OLUMCUL.
+ *
+ * Onceden testere 34 hasar verip 0.7 sn dokunulmazlik biraktigi icin oyuncu
+ * icinden yuruyup gecebiliyordu — engel olmaktan cikmisti. Sivi havuzlariyla
+ * ayni kurala getirildi: degen olur. Guvenli nokta sistemi sayesinde olum
+ * cezasi kucuk (birkac adim geri), bu yuzden adil.
+ */
+function hitPlayer(p) {
   if (p.invuln > 0) return;
-  p.health -= dmg;
-  p.invuln = 0.7;
-  addShake(0.45);
-  SFX.hurt();
-  if (p.health <= 0) respawn(p);
+  p.health = 0;
+  addShake(0.9);
+  flash();
+  respawn(p);
 }
 
 function updateHazards(t) {
@@ -342,7 +350,7 @@ function updateHazards(t) {
       h.disc.rotation.z -= 0.45;
       for (const p of [S.fire, S.water]) {
         const dx = p.g.position.x - h.x, dz = p.g.position.z - h.z;
-        if (dx * dx + dz * dz < (h.r + 0.4) ** 2 && p.g.position.y < 1.5) hitPlayer(p, 34);
+        if (dx * dx + dz * dz < (h.r + 0.4) ** 2 && p.g.position.y < 1.5) hitPlayer(p);
       }
     } else {                                   // sallanan balta
       const a = Math.sin(t * 1.5) * 1.05;
@@ -350,7 +358,7 @@ function updateHazards(t) {
       const bx = h.x + Math.sin(a) * 3.5;
       for (const p of [S.fire, S.water]) {
         const dx = p.g.position.x - bx, dz = p.g.position.z - h.z;
-        if (dx * dx + dz * dz < 0.95 && p.g.position.y < 1.3) hitPlayer(p, 34);
+        if (dx * dx + dz * dz < 1.3 && p.g.position.y < 1.3) hitPlayer(p);
       }
     }
   }
@@ -564,22 +572,13 @@ function updateCamera(dt) {
   applyShake(S.camera, dt);
 }
 
+/**
+ * Sivi yuzeyleri artik kendi gölgelendiricilerinde dalgalaniyor ve akiyor
+ * (bkz. liquids.js), bu yuzden burada yalnizca zaman ilerletilir. Onceden her
+ * havuzun 15x15 kose dizisi her karede CPU'da yeniden hesaplaniyordu.
+ */
 function animateWorld(time) {
-  // Akis hissi: dokuyu kaydir. Materyaller paylasildigi icin bu tek islem
-  // sahnedeki TUM lav/su yuzeylerini birden hareketlendirir.
-  TEX.lava.offset.set(time * 0.014, time * 0.030);
-  TEX.water.offset.set(Math.sin(time * 0.09) * 0.06, time * 0.045);
-
-  for (const a of animated) {
-    const pos = a.geo.attributes.position.array;
-    for (let i = 0; i < pos.length; i += 3) {
-      const bx = a.base[i], by = a.base[i + 1];
-      pos[i + 2] = Math.sin(bx * 1.5 + time * (a.type === 'lava' ? 1.5 : 2.5)) * 0.06
-                 + Math.cos(by * 1.3 + time * 2) * 0.06;
-    }
-    a.geo.attributes.position.needsUpdate = true;
-    if (a.type === 'lava') a.mesh.material.emissiveIntensity = 0.7 + Math.sin(time * 3) * 0.25;
-  }
+  updateLiquids(time);
 }
 
 // ---------- render ----------

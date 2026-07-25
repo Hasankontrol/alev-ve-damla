@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { S, share, solids, bounds, boundMeshes, zones, torches, plates,
          animated, levelMeshes, gems, movers, hazards, fires } from './state.js';
 import { TEX, fireTex, sparkTex } from './textures.js';
+import { makeOceanMaterial, makeLavaMaterial } from './liquids.js';
 
 /**
  * Paylasilan kaynaklar.
@@ -106,16 +107,11 @@ export function box4(x1, x2, z1, z2, g = {}) {
 export const corridor = (x1, x2, z1, z2) => { vWall(x1, z1, z2); vWall(x2, z1, z2); };
 
 const poolMats = {};
+/** Havuz yuzeyi: isiksiz ozel gölgelendirici (bkz. liquids.js). */
 function poolMat(isLava) {
   const k = isLava ? 'lava' : 'water';
   if (!poolMats[k]) {
-    poolMats[k] = share(new THREE.MeshLambertMaterial({
-      map: isLava ? TEX.lava : TEX.water,
-      color: isLava ? 0xff4a12 : 0x1e78ff,
-      emissive: isLava ? 0xff2a00 : 0x0a3aff,
-      emissiveIntensity: 0.85,
-      transparent: !isLava, opacity: isLava ? 1 : 0.9,
-    }));
+    poolMats[k] = share(isLava ? makeLavaMaterial() : makeOceanMaterial());
   }
   return poolMats[k];
 }

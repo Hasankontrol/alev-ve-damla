@@ -1,5 +1,5 @@
 import './style.css';
-import { S, solids, zones, gems, plates, torches } from './state.js';
+import { S, solids, zones, gems, plates, torches, hazards } from './state.js';
 import { resumeAudio } from './audio.js';
 import { bindFire, bindWater, buildCtrls, buildTouch, showTouch, assignPads, keys } from './input.js';
 import { applyMode, loadFace, loadModel } from './entities.js';
@@ -121,6 +121,7 @@ window.__g = {
   get gems() { return gems; },
   get plates() { return plates; },
   get torches() { return torches; },
+  get hazards() { return hazards; },
   get binds() { return { fire: { ...bindFire }, water: { ...bindWater } }; },
   get valveActive() { return S.valve && S.valve.active; },
   get keys() { return { ...keys }; },
