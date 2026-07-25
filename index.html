@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alev ve Damla: Gölgeden Kaçış</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#05060a; font-family:system-ui,Segoe UI,Arial,sans-serif; color:#eee; }
+  #app { position:fixed; inset:0; }
+  canvas { display:block; }
+  #hud { position:fixed; top:12px; left:12px; right:12px; display:flex; justify-content:space-between; pointer-events:none; z-index:5; }
+  .hp { width:230px; }
+  .hp .name { font-size:13px; font-weight:700; margin-bottom:4px; text-shadow:0 1px 3px #000; }
+  .hp .bar { height:14px; border-radius:8px; background:#1b1e2a; border:1px solid #333; overflow:hidden; }
+  .hp .fill { height:100%; width:100%; transition:width .12s linear; }
+  #hpFire .fill { background:linear-gradient(90deg,#ff7a18,#ffcf3f); }
+  #hpFire .name { color:#ff9d3f; }
+  #hpWater { text-align:right; }
+  #hpWater .fill { background:linear-gradient(90deg,#2fd0ff,#7affd8); margin-left:auto; }
+  #hpWater .name { color:#5fd8ff; }
+  #topbar { position:fixed; top:52px; left:50%; transform:translateX(-50%); z-index:5; text-align:center; pointer-events:none; }
+  #levelName { font-size:12px; color:#8ab; letter-spacing:1px; text-transform:uppercase; text-shadow:0 1px 2px #000; }
+  #objective { display:inline-block; margin-top:4px; background:rgba(10,12,20,.7); padding:8px 18px; border-radius:20px;
+    font-size:14px; text-shadow:0 1px 2px #000; border:1px solid rgba(255,255,255,.08); max-width:90vw; }
+  #banner { position:fixed; top:42%; left:50%; transform:translate(-50%,-50%); z-index:6; font-size:34px; font-weight:800;
+    text-align:center; text-shadow:0 2px 12px #000; opacity:0; transition:opacity .4s; pointer-events:none;
+    background:linear-gradient(90deg,#ff9d3f,#5fd8ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .overlay { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; overflow:auto;
+    background:radial-gradient(circle at 50% 30%, #16121f, #05060a 70%); text-align:center; }
+  .card { max-width:640px; padding:26px 40px; }
+  .card h1 { font-size:30px; margin-bottom:6px; letter-spacing:.5px; }
+  .card h1 .a { color:#ff9d3f; } .card h1 .d { color:#5fd8ff; }
+  .card p { color:#b9bcc9; font-size:14px; line-height:1.6; margin:8px 0; }
+  .btn { margin-top:14px; padding:12px 30px; font-size:16px; font-weight:700; border:none; border-radius:12px;
+    cursor:pointer; background:linear-gradient(90deg,#ff7a18,#2fd0ff); color:#0a0a12; }
+  .btn:hover { filter:brightness(1.1); }
+  .faces { display:flex; gap:24px; justify-content:center; margin:14px 0 6px; }
+  .face { flex:1; }
+  .face label { display:block; font-size:12px; margin-bottom:6px; color:#cfd2dd; }
+  .face .thumb { width:76px; height:76px; border-radius:14px; margin:0 auto 8px; background:#222634; border:2px solid #333;
+    background-size:cover; background-position:center; }
+  #thumbFire { border-color:#ff9d3f66; } #thumbWater { border-color:#5fd8ff66; }
+  .face input[type=file] { font-size:11px; width:100%; color:#9aa; }
+  .modebox { margin:8px auto 0; font-size:13px; color:#cfd2dd; display:flex; gap:8px; align-items:center; justify-content:center; }
+  .modebox input { width:16px; height:16px; }
+  .hint { font-size:11px; color:#7d8290; margin-top:6px; line-height:1.5; }
+  .hint input[type=file] { font-size:10px; color:#9aa; }
+  .secTitle { font-size:13px; font-weight:700; color:#dfe3ee; margin:14px 0 4px; }
+  .ctrls { display:flex; gap:22px; justify-content:center; }
+  .ctrlcol { flex:1; max-width:250px; }
+  .ctrlcol h3 { font-size:13px; margin-bottom:6px; text-align:center; }
+  .krow { display:flex; align-items:center; justify-content:space-between; font-size:12px; margin:3px 0; color:#cfd2dd; }
+  .kbtn { min-width:76px; padding:4px 8px; border-radius:6px; border:1px solid #3a3f4d; background:#20242e; color:#fff;
+    font-size:12px; cursor:pointer; font-family:inherit; }
+  .kbtn:hover { border-color:#5a6070; }
+  .kbtn.listening { background:#ff7a18; color:#0a0a12; border-color:#ff7a18; }
+  .kbtn.dup { border-color:#ff4d4d; }
+  .keys { display:flex; gap:24px; justify-content:center; font-size:12px; color:#aab; margin-top:10px; }
+  .keys b { color:#fff; }
+  .hidden { display:none !important; }
+  #chaseFlash { position:fixed; inset:0; z-index:4; pointer-events:none; background:red; opacity:0; }
+  #vign { position:fixed; inset:0; z-index:3; pointer-events:none; box-shadow:inset 0 0 220px 60px rgba(0,0,0,.75); }
+  #gems { position:fixed; top:34px; right:14px; z-index:5; font-size:15px; font-weight:700; color:#9fe8ff;
+    text-shadow:0 1px 3px #000; pointer-events:none; }
+  #splitLine { position:fixed; top:0; bottom:0; left:50%; width:3px; margin-left:-1.5px; z-index:4;
+    background:linear-gradient(#ff7a18,#2fd0ff); pointer-events:none; box-shadow:0 0 8px rgba(0,0,0,.6); }
+  #touchCtrls { position:fixed; inset:0; z-index:6; pointer-events:none; }
+  .tbtn { position:absolute; pointer-events:auto; width:56px; height:56px; border-radius:12px; opacity:.85;
+    background:rgba(40,44,56,.5); border:1px solid rgba(255,255,255,.18); color:#fff; font-size:22px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; -webkit-user-select:none; user-select:none; touch-action:none; }
+  .tbtn:active { background:rgba(255,255,255,.3); }
+  .tbtn.fire { border-color:#ff9d3f; color:#ffcf8f; } .tbtn.water { border-color:#5fd8ff; color:#bff0ff; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="hud" class="hidden">
+  <div class="hp" id="hpFire"><div class="name">🔥 ALEV (sen)</div><div class="bar"><div class="fill"></div></div></div>
+  <div class="hp" id="hpWater"><div class="name">💧 DAMLA (sevgilin)</div><div class="bar"><div class="fill"></div></div></div>
+</div>
+<div id="topbar" class="hidden"><div id="levelName"></div><div id="objective"></div></div>
+<div id="gems" class="hidden">💎 <span id="gemCount">0/0</span></div>
+<div id="banner"></div>
+<div id="pauseScreen" class="overlay hidden"><div class="card"><h1>⏸ Durakladı</h1>
+  <p><b>P</b> devam · <b>R</b> bölümü yeniden başlat · <b>M</b> ses aç/kapa</p></div></div>
+<div id="chaseFlash"></div>
+<div id="vign"></div>
+<div id="splitLine" class="hidden"></div>
+<div id="touchCtrls" class="hidden"></div>
+
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h1><span class="a">Alev</span> ve <span class="d">Damla</span></h1>
+    <p style="color:#8a8fa0;font-size:13px;margin-top:0">Gölgeden Kaçış — 2 kişilik yerel işbirliği · 3 Bölüm</p>
+    <div class="faces">
+      <div class="face">
+        <div class="thumb" id="thumbFire"></div>
+        <label>🔥 Alev — senin fotoğrafın</label>
+        <input type="file" id="fileFire" accept="image/*">
+      </div>
+      <div class="face">
+        <div class="thumb" id="thumbWater"></div>
+        <label>💧 Damla — sevgilinin fotoğrafı</label>
+        <input type="file" id="fileWater" accept="image/*">
+      </div>
+    </div>
+
+    <div class="secTitle">🎮 Oyun Mekanikleri — Tuşları Kendin Belirle</div>
+    <div class="ctrls">
+      <div class="ctrlcol"><h3 style="color:#ff9d3f">🔥 ALEV (sen)</h3><div id="ctrlFire"></div></div>
+      <div class="ctrlcol"><h3 style="color:#5fd8ff">💧 DAMLA (sevgilin)</h3><div id="ctrlWater"></div></div>
+    </div>
+    <div class="hint">Bir kutuya tıkla, sonra istediğin klavye tuşuna bas. (P duraklat · R yeniden · M ses — sabit)</div>
+
+    <label class="modebox"><input type="checkbox" id="fotoFigur"> 🧍 Foto figür modu (fotoğraf tüm gövde olsun)</label>
+    <label class="modebox"><input type="checkbox" id="splitMode"> 🖵 Bölünmüş ekran (her oyuncu kendi kamerasıyla) — 2 kumanda önerilir</label>
+    <div class="hint">
+      Kendi tasarladığın 3D karakteri yükle (.glb) — Ready Player Me / VRoid / Blender ile yapabilirsin:<br>
+      🔥 <input type="file" id="modelFire" accept=".glb,.gltf"> &nbsp; 💧 <input type="file" id="modelWater" accept=".glb,.gltf">
+    </div>
+    <p style="font-size:12px;color:#777">Kamera: fare sürükle · tekerlek yakınlaş</p>
+    <button class="btn" id="startBtn">BAŞLA</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="winScreen">
+  <div class="card">
+    <h1>🎉 Oyunu Bitirdiniz!</h1>
+    <p>Beş bölümü de geçtiniz. Külge geride kaldı, Alev ve Damla birlikte kaçtı.</p>
+    <p style="font-size:16px">💎 Toplanan elmas: <span id="gemFinal">0</span> / 15</p>
+    <button class="btn" id="againBtn">Tekrar Oyna</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+const T=THREE, app=document.getElementById('app');
+let scene, camera, camFire, camWater, renderer, clock, composer, dirLight, TEX={};
+let camYaw=-0.12, camPitch=0.6, camDistBase=15, dragging=false, lastX=0, lastY=0;
+let split=false;
+
+// oyuncuların kendi belirlediği tuşlar (varsayılan; başlangıç ekranından değiştirilebilir)
+const bindFire ={ up:'KeyW', down:'KeyS', left:'KeyA', right:'KeyD', jump:'Space',      interact:'KeyE' };
+const bindWater={ up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight', jump:'ShiftRight', interact:'ControlRight' };
+let activeBinds=new Set();
+function refreshBinds(){ activeBinds=new Set([...Object.values(bindFire),...Object.values(bindWater)]); }
+refreshBinds();
+
+const keys={};
+addEventListener('keydown',e=>{ keys[e.code]=true; if(activeBinds.has(e.code)||['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  if(!started||won) return;
+  if(e.code==='KeyP'){ paused=!paused; document.getElementById('pauseScreen').classList.toggle('hidden',!paused); }
+  if(e.code==='KeyR'){ paused=false; document.getElementById('pauseScreen').classList.add('hidden'); loadLevel(curLevel); }
+  if(e.code==='KeyM'){ setMute(!muted); document.getElementById('gems').style.opacity=muted?0.5:1; }
+});
+addEventListener('keyup',e=>{ keys[e.code]=false; });
+function down(...c){ return c.some(k=>keys[k]); }
+
+// --- birleşik girdi: klavye + oyun kumandası + dokunmatik ---
+const touchIn={fire:{},water:{}};
+const pads={fire:null,water:null};
+function assignPads(){ const gps=navigator.getGamepads?navigator.getGamepads():[]; const ids=[];
+  for(let i=0;i<gps.length;i++) if(gps[i]) ids.push(i);
+  pads.fire=ids.length>0?ids[0]:null; pads.water=ids.length>1?ids[1]:null; }
+addEventListener('gamepadconnected',assignPads); addEventListener('gamepaddisconnected',assignPads);
+function padAct(idx,action){
+  if(idx==null) return false; const gp=(navigator.getGamepads?navigator.getGamepads():[])[idx]; if(!gp) return false;
+  const ax=gp.axes||[], b=gp.buttons||[], DZ=0.45, pr=i=>b[i]&&b[i].pressed;
+  if(action==='up')    return ax[1]<-DZ||pr(12);
+  if(action==='down')  return ax[1]> DZ||pr(13);
+  if(action==='left')  return ax[0]<-DZ||pr(14);
+  if(action==='right') return ax[0]> DZ||pr(15);
+  if(action==='jump')  return pr(0)||pr(3);
+  if(action==='interact') return pr(2)||pr(1);
+  return false;
+}
+function inp(who,action){
+  const bind=who==='fire'?bindFire:bindWater;
+  return !!keys[bind[action]] || !!touchIn[who][action] || padAct(pads[who],action);
+}
+
+// --- tuş atama arayüzü (başlangıç ekranı) ---
+const ACTIONS=[['up','İleri'],['down','Geri'],['left','Sol'],['right','Sağ'],['jump','Zıpla'],['interact','Etkileşim']];
+function keyLabel(code){
+  const m={ Space:'Boşluk', ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→',
+    ControlLeft:'Sol Ctrl', ControlRight:'Sağ Ctrl', ShiftLeft:'Sol Shift', ShiftRight:'Sağ Shift',
+    AltLeft:'Sol Alt', AltRight:'Sağ Alt', Enter:'Enter', Tab:'Tab', Backquote:'`',
+    Slash:'/', Backslash:'\\', Period:'.', Comma:',', Semicolon:';', Quote:"'", Minus:'-', Equal:'=' };
+  if(m[code]) return m[code];
+  if(code.startsWith('Key')) return code.slice(3);
+  if(code.startsWith('Digit')) return code.slice(5);
+  if(code.startsWith('Numpad')) return 'Num'+code.slice(6);
+  return code;
+}
+let listening=null;
+function markDups(){
+  document.querySelectorAll('.kbtn').forEach(b=>b.classList.remove('dup'));
+  [['ctrlFire',bindFire],['ctrlWater',bindWater]].forEach(([id])=>{
+    const btns=[...document.querySelectorAll('#'+id+' .kbtn')], seen={};
+    btns.forEach(b=>{ if(seen[b._code]) { b.classList.add('dup'); seen[b._code].classList.add('dup'); } else seen[b._code]=b; });
+  });
+}
+function buildCtrls(id, bind){
+  const c=document.getElementById(id); c.innerHTML='';
+  ACTIONS.forEach(([act,label])=>{
+    const row=document.createElement('div'); row.className='krow';
+    const s=document.createElement('span'); s.textContent=label;
+    const btn=document.createElement('button'); btn.className='kbtn'; btn.type='button';
+    btn._code=bind[act]; btn.textContent=keyLabel(bind[act]);
+    btn.onclick=()=>{ if(listening) listening.btn.textContent=keyLabel(listening.btn._code);
+      document.querySelectorAll('.kbtn.listening').forEach(b=>b.classList.remove('listening'));
+      btn.classList.add('listening'); btn.textContent='… bir tuşa bas'; listening={bind,act,btn}; };
+    row.appendChild(s); row.appendChild(btn); c.appendChild(row);
+  });
+}
+// yakalama: capture fazında, oyun tuş dinleyicisinden önce çalışır
+addEventListener('keydown',e=>{
+  if(!listening) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const code=e.code; delete keys[code];          // yakalanan tuş basılı kalmasın
+  listening.bind[listening.act]=code; listening.btn._code=code;
+  listening.btn.textContent=keyLabel(code); listening.btn.classList.remove('listening');
+  listening=null; refreshBinds(); markDups();
+}, true);
+
+let started=false, won=false, useStandee=false;
+const up=new T.Vector3(0,1,0), mixers=[];
+
+const solids=[], bounds=[], boundMeshes=[], zones=[], torches=[], plates=[], animated=[], levelMeshes=[], gems=[], movers=[], hazards=[], fires=[];
+let hemi, ray=new T.Raycaster();
+let doorTorch, doorValve, gateDual, valve, kulge, goalFire, goalWater;
+let fire, water, curLevel=0, transitioning=false;
+let levelHasChase=false, levelChaseZ=0, levelExitZ=0, kulgeActive=false;
+let chaseCP=new T.Vector3(0,0,0), curHint=()=>'';
+let paused=false, muted=false, gemsGot=0, gemsTotal=0, gemsAll=0;
+
+// ---------- ses (prosedürel WebAudio) ----------
+let actx, master, ambGain, chaseGain;
+function audioInit(){
+  if(actx) return;
+  actx=new (window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain(); master.gain.value=0.5; master.connect(actx.destination);
+  // yumuşak ortam droneu
+  ambGain=actx.createGain(); ambGain.gain.value=0.06; ambGain.connect(master);
+  const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380; lp.connect(ambGain);
+  [55,82.5].forEach((f,i)=>{ const o=actx.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const lfo=actx.createOscillator(); lfo.frequency.value=0.07+i*0.03; const lg=actx.createGain(); lg.gain.value=4;
+    lfo.connect(lg).connect(o.frequency); o.connect(lp); o.start(); lfo.start(); });
+  // kovalama droneu (başta kısık)
+  chaseGain=actx.createGain(); chaseGain.gain.value=0; chaseGain.connect(master);
+  const co=actx.createOscillator(); co.type='sawtooth'; co.frequency.value=46; co.connect(chaseGain); co.start();
+  const cl=actx.createOscillator(); cl.type='square'; cl.frequency.value=92; const cg=actx.createGain(); cg.gain.value=0.4; cl.connect(cg).connect(chaseGain); cl.start();
+}
+function sfx(freq,dur,type,vol,to){
+  if(muted||!actx) return; const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type||'square'; o.frequency.setValueAtTime(freq,actx.currentTime);
+  if(to) o.frequency.exponentialRampToValueAtTime(to,actx.currentTime+dur);
+  g.gain.setValueAtTime(vol||0.15,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0008,actx.currentTime+dur);
+  o.connect(g).connect(master); o.start(); o.stop(actx.currentTime+dur);
+}
+const SFX={
+  jump:()=>sfx(240,0.12,'square',0.12,460),
+  gem:()=>{ sfx(880,0.1,'triangle',0.16,1200); setTimeout(()=>sfx(1320,0.14,'triangle',0.14),70); },
+  torch:()=>sfx(300,0.18,'sawtooth',0.14,180),
+  valve:()=>sfx(200,0.25,'sine',0.16,520),
+  door:()=>sfx(150,0.4,'sawtooth',0.18,60),
+  hurt:()=>sfx(220,0.2,'square',0.16,70),
+  win:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>sfx(f,0.2,'triangle',0.16),i*120)),
+  step:()=>sfx(90,0.05,'sine',0.05)
+};
+function setMute(m){ muted=m; if(master) master.gain.value=m?0:0.5; }
+
+// ---------- dokular ----------
+function noiseTex(base,hi,scale,rep){
+  const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
+  x.fillStyle=base; x.fillRect(0,0,256,256);
+  for(let i=0;i<2600;i++){ x.fillStyle=Math.random()<0.5?hi:base; x.globalAlpha=Math.random()*0.5;
+    const s=Math.random()*scale+1; x.fillRect(Math.random()*256,Math.random()*256,s,s); }
+  x.globalAlpha=1; const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; if(rep)t.repeat.set(rep,rep); return t;
+}
+function brickTex(brick,mortar,rep){
+  const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
+  x.fillStyle=mortar; x.fillRect(0,0,256,256);
+  const bh=32, bw=64, mo=4;
+  for(let r=0,row=0; r<256; r+=bh, row++){
+    const off=(row%2)? bw/2 : 0;
+    for(let cx=-bw; cx<256; cx+=bw){
+      const px=cx+off+mo/2, py=r+mo/2;
+      const shade=(Math.random()*0.22-0.08);
+      x.fillStyle=shadeHex(brick,shade); x.fillRect(px,py,bw-mo,bh-mo);
+      x.fillStyle='rgba(0,0,0,.12)'; x.fillRect(px,py+bh-mo-3,bw-mo,3); // alt gölge
+      x.fillStyle='rgba(255,255,255,.05)'; x.fillRect(px,py,bw-mo,2);   // üst ışık
+    }
+  }
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; if(rep)t.repeat.set(rep,rep); return t;
+}
+function shadeHex(hex,amt){ const n=parseInt(hex.slice(1),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  const f=v=>Math.max(0,Math.min(255,Math.round(v+amt*255)));
+  return `rgb(${f(r)},${f(g)},${f(b)})`; }
+let FIRETEX;
+function fireTex(){
+  if(FIRETEX) return FIRETEX;
+  const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
+  const g=x.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,'rgba(255,255,220,1)'); g.addColorStop(.3,'rgba(255,180,60,.9)');
+  g.addColorStop(.6,'rgba(255,90,20,.5)'); g.addColorStop(1,'rgba(255,40,0,0)');
+  x.fillStyle=g; x.fillRect(0,0,64,64); return FIRETEX=new T.CanvasTexture(c);
+}
+function faceTex(bg){
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+  x.fillStyle=bg; x.fillRect(0,0,128,128); x.fillStyle='#0a0a12';
+  x.beginPath(); x.arc(46,54,8,0,7); x.fill(); x.beginPath(); x.arc(82,54,8,0,7); x.fill();
+  x.lineWidth=5; x.strokeStyle='#0a0a12'; x.beginPath(); x.arc(64,78,18,0.15*Math.PI,0.85*Math.PI); x.stroke();
+  return new T.CanvasTexture(c);
+}
+function silhouetteTex(bg){
+  const c=document.createElement('canvas'); c.width=128; c.height=256; const x=c.getContext('2d');
+  x.fillStyle=bg; x.beginPath(); x.arc(64,50,26,0,7); x.fill(); x.fillRect(40,78,48,90);
+  x.fillRect(30,80,14,70); x.fillRect(84,80,14,70); x.fillRect(48,168,14,80); x.fillRect(66,168,14,80);
+  return new T.CanvasTexture(c);
+}
+let SPARK;
+function sparkTex(){
+  if(SPARK) return SPARK;
+  const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
+  const gr=x.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'#fff'); gr.addColorStop(.4,'rgba(255,255,255,.6)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=gr; x.fillRect(0,0,64,64); return SPARK=new T.CanvasTexture(c);
+}
+// karakter aurası: ateş için yükselen közler, su için sıçrayan damlalar
+function makeAura(color, kind){
+  const N=26, pos=new Float32Array(N*3), data=[];
+  for(let i=0;i<N;i++){ data.push({life:Math.random()}); pos[i*3]=pos[i*3+1]=pos[i*3+2]=0; }
+  const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(pos,3));
+  const mat=new T.PointsMaterial({ size:kind==='fire'?0.4:0.28, map:sparkTex(), color, transparent:true,
+    blending:T.AdditiveBlending, depthWrite:false, opacity:.9 });
+  const pts=new T.Points(geo,mat); scene.add(pts);
+  return { pts, geo, data, kind };
+}
+function updateAura(a, cx, cz, dt){
+  const pos=a.geo.attributes.position.array;
+  a.data.forEach((p,i)=>{
+    p.life-=dt*1.2;
+    if(p.life<=0){ p.life=1; p.x=cx+(Math.random()-.5)*0.6; p.z=cz+(Math.random()-.5)*0.6;
+      p.y=a.kind==='fire'?0.4:1.6; p.vy=a.kind==='fire'?1.6+Math.random():-1.8-Math.random(); p.vx=(Math.random()-.5)*0.5; p.vz=(Math.random()-.5)*0.5; }
+    p.x+=p.vx*dt; p.z+=p.vz*dt; p.y+=p.vy*dt;
+    pos[i*3]=p.x; pos[i*3+1]=p.y; pos[i*3+2]=p.z;
+  });
+  a.geo.attributes.position.needsUpdate=true;
+}
+function makeGem(x,z,y){
+  const g=new T.Group(); g.position.set(x,(y||0)+1.0,z);
+  const core=new T.Mesh(new T.OctahedronGeometry(0.34), new T.MeshStandardMaterial({color:0xdffbff,emissive:0x5fe6ff,emissiveIntensity:2.2,roughness:.1,metalness:.3}));
+  g.add(core);
+  const halo=new T.Sprite(new T.SpriteMaterial({map:sparkTex(),color:0x8fefff,transparent:true,blending:T.AdditiveBlending,depthWrite:false}));
+  halo.scale.set(1.1,1.1,1); g.add(halo);
+  g.add(new T.PointLight(0x6fe0ff,0.7,4));
+  scene.add(g); levelMeshes.push(g); gems.push({ g, x, z, y:(y||0)+1.0, got:false }); gemsTotal++;
+}
+function makeMover(x,z,w,d,h,axis,range,speed){
+  const s=solidBox(x,z,w,d,h,TEX.plat,true,true);
+  movers.push({ s, cx:x, cz:z, axis, range, speed, px:x, pz:z });
+  return s;
+}
+function updateMovers(t){
+  for(const m of movers){
+    const off=Math.sin(t*m.speed)*m.range;
+    const nx=m.axis==='x'?m.cx+off:m.cx, nz=m.axis==='z'?m.cz+off:m.cz;
+    const dx=nx-m.px, dz=nz-m.pz;
+    m.s.mesh.position.x=nx; m.s.mesh.position.z=nz;
+    const w=m.s.maxX-m.s.minX, d=m.s.maxZ-m.s.minZ;
+    m.s.minX=nx-w/2; m.s.maxX=nx+w/2; m.s.minZ=nz-d/2; m.s.maxZ=nz+d/2;
+    // üstündeki oyuncuyu taşı
+    for(const p of [fire,water]) if(p.grounded && Math.abs(p.g.position.y-m.s.top)<0.2 &&
+        p.g.position.x>m.s.minX-0.4&&p.g.position.x<m.s.maxX+0.4&&p.g.position.z>m.s.minZ-0.4&&p.g.position.z<m.s.maxZ+0.4){
+      p.g.position.x+=dx; p.g.position.z+=dz; }
+    m.px=nx; m.pz=nz;
+  }
+}
+// ---------- tehlikeler: dönen testere + sallanan balta ----------
+function makeSaw(x,z){
+  const g=new T.Group(); g.position.set(x,0.7,z);
+  const steel=new T.MeshStandardMaterial({color:0xc2c8d6,metalness:.85,roughness:.28,emissive:0x223,emissiveIntensity:.35});
+  const disc=new T.Mesh(new T.CylinderGeometry(0.85,0.85,0.1,24),steel); disc.rotation.x=Math.PI/2; g.add(disc);
+  for(let i=0;i<12;i++){ const th=new T.Mesh(new T.ConeGeometry(0.12,0.32,4),steel); const a=i/12*6.283;
+    th.position.set(Math.cos(a)*0.95,Math.sin(a)*0.95,0); th.rotation.z=a-Math.PI/2; g.add(th); }
+  scene.add(g); levelMeshes.push(g); hazards.push({type:'saw',g,x,z,r:1.05,disc});
+}
+function makeAxe(x,z){
+  const g=new T.Group(); g.position.set(x,4.2,z);
+  g.add(new T.Mesh(new T.CylinderGeometry(0.05,0.05,3.6,6), new T.MeshStandardMaterial({color:0x2a2a30}))).position.y=-1.8;
+  const blade=new T.Mesh(new T.BoxGeometry(1.3,0.8,0.14), new T.MeshStandardMaterial({color:0xc8ccda,metalness:.85,roughness:.3,emissive:0x223,emissiveIntensity:.35}));
+  blade.position.y=-3.5; g.add(blade);
+  scene.add(g); levelMeshes.push(g); hazards.push({type:'axe',g,x,z,blade});
+}
+function hitPlayer(p,dmg){ if(p.invuln>0) return; p.health-=dmg; p.invuln=0.7; SFX.hurt(); if(p.health<=0) respawn(p); }
+function updateHazards(t){
+  for(const h of hazards){
+    if(h.type==='saw'){ h.disc.rotation.z-=0.45;
+      for(const p of [fire,water]){ const dx=p.g.position.x-h.x, dz=p.g.position.z-h.z;
+        if(dx*dx+dz*dz<(h.r+0.4)*(h.r+0.4)&&p.g.position.y<1.5) hitPlayer(p,34); } }
+    else { const a=Math.sin(t*1.5)*1.05; h.g.rotation.z=a;
+      const bx=h.x+Math.sin(a)*3.5;
+      for(const p of [fire,water]){ const dx=p.g.position.x-bx, dz=p.g.position.z-h.z;
+        if(dx*dx+dz*dz<0.95&&p.g.position.y<1.3) hitPlayer(p,34); } }
+  }
+}
+
+// ---------- karakter ----------
+function makePlayer(color, faceColor, emissive, kind){
+  const g=new T.Group();
+  const mat=new T.MeshStandardMaterial({ color, emissive:emissive||color, emissiveIntensity:0.9, roughness:.35, metalness:.1 });
+  const human=new T.Group(); g.add(human);
+  const part=(w,h,d,y,x=0)=>{ const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat); m.position.set(x,y,0); m.castShadow=true; human.add(m); return m; };
+  part(0.62,0.85,0.4,1.15);
+  const head=new T.Mesh(new T.SphereGeometry(0.32,16,14),mat); head.position.y=1.85; head.castShadow=true; human.add(head);
+  const lA=part(0.18,0.7,0.18,1.15,-0.46), rA=part(0.18,0.7,0.18,1.15,0.46);
+  const lL=part(0.22,0.8,0.22,0.4,-0.16), rL=part(0.22,0.8,0.22,0.4,0.16);
+  const face=new T.Sprite(new T.SpriteMaterial({ map:faceTex(faceColor), transparent:true, depthTest:false, depthWrite:false }));
+  face.scale.set(0.6,0.6,1); face.position.set(0,1.86,0); face.renderOrder=10; human.add(face);
+  const standee=new T.Sprite(new T.SpriteMaterial({ map:silhouetteTex(faceColor), transparent:true }));
+  standee.scale.set(1.5,2.6,1); standee.position.set(0,1.3,0); standee.visible=false; g.add(standee);
+  g.add(new T.PointLight(color,1.4,9)).position.y=1.2;
+  scene.add(g);
+  const aura=makeAura(color, kind);
+  return { g, mat, human, standee, face, head, model:null, arms:[lA,rA], legs:[lL,rL], color, aura,
+           vel:new T.Vector3(), health:100, grounded:true, spawn:new T.Vector3(), invuln:0, phase:Math.random()*6, _support:0, footClock:0 };
+}
+function applyMode(p){
+  if(p.model){ p.model.visible=true; p.human.visible=false; p.standee.visible=false; return; }
+  p.human.visible=!useStandee; p.standee.visible=useStandee;
+}
+function loadFace(p,file){
+  const url=URL.createObjectURL(file);
+  new T.TextureLoader().load(url,tex=>{
+    p.face.material.map=tex; p.face.material.needsUpdate=true; p.face.scale.set(0.85,0.95,1);
+    p.standee.material.map=tex; p.standee.material.needsUpdate=true;
+    const im=tex.image, asp=im&&im.width?im.height/im.width:1.6; p.standee.scale.set(1.6,1.6*asp,1);
+  });
+}
+function loadModel(p,file){
+  const url=URL.createObjectURL(file);
+  new T.GLTFLoader().load(url,gltf=>{
+    const m=gltf.scene, box=new T.Box3().setFromObject(m), size=new T.Vector3(); box.getSize(size);
+    const s=2.0/(size.y||1); m.scale.setScalar(s);
+    const b2=new T.Box3().setFromObject(m), c=new T.Vector3(); b2.getCenter(c);
+    m.position.set(-c.x, -b2.min.y, -c.z); m.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
+    p.model=m; p.g.add(m); applyMode(p);
+    if(gltf.animations&&gltf.animations.length){ const mx=new T.AnimationMixer(m); mx.clipAction(gltf.animations[0]).play(); mixers.push(mx); }
+  }, undefined, err=>console.warn('model yüklenemedi',err));
+}
+
+// ---------- yapı taşları ----------
+function solidBox(x,z,w,d,h,tex,stand,cast){
+  const m=new T.Mesh(new T.BoxGeometry(w,h,d), new T.MeshStandardMaterial({map:tex,roughness:.9}));
+  m.position.set(x,h/2,z); m.receiveShadow=true; if(cast) m.castShadow=true; scene.add(m); levelMeshes.push(m);
+  const s={ minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,top:h,stand:!!stand,solid:true,mesh:m }; solids.push(s); return s;
+}
+function hWall(z,x1,x2,H){ return solidBox((x1+x2)/2, z, Math.abs(x2-x1)+0.5, 0.5, H||2.8, TEX.wall, true, true); }
+function vWall(x,z1,z2,H){ return solidBox(x, (z1+z2)/2, 0.5, Math.abs(z2-z1)+0.5, H||2.8, TEX.wall, true, true); }
+function platform(x,z,w,d,h){ return solidBox(x,z,w,d,h,TEX.plat,true,true); }
+function door(x,z,w){ const s=solidBox(x,z,w,0.6,2.6,TEX.door,false,true); s.door=true; return s; }
+function boundWall(x,z,w,d){
+  const m=new T.Mesh(new T.BoxGeometry(w,3.4,d), new T.MeshStandardMaterial({map:TEX.wall,roughness:.9}));
+  m.position.set(x,1.7,z); m.receiveShadow=true; scene.add(m); boundMeshes.push(m);
+  bounds.push({ minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,top:3.4,stand:false });
+}
+function pool(x,z,w,d,type){
+  const geo=new T.PlaneGeometry(w,d,14,14);
+  const col=type==='lava'?0xff4a12:0x1e78ff, emi=type==='lava'?0xff2a00:0x0a3aff;
+  const tex=type==='lava'?TEX.lava:TEX.water;
+  const mat=new T.MeshStandardMaterial({ map:tex,color:col,emissive:emi,emissiveIntensity:.85,roughness:.25,
+    transparent:type==='water',opacity:type==='water'?.9:1 });
+  const m=new T.Mesh(geo,mat); m.rotation.x=-Math.PI/2; m.position.set(x,0.06,z); m.receiveShadow=true; scene.add(m); levelMeshes.push(m);
+  zones.push({ minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,type });
+  animated.push({ mesh:m,geo,type,base:geo.attributes.position.array.slice() });
+  if(type==='lava') makeFire(x,z,w,d);
+}
+// lav üzerinde yükselen gerçek alevler (partikül)
+function makeFire(x,z,w,d){
+  const N=Math.min(200,Math.max(24,Math.round(w*d*1.3)));
+  const pos=new Float32Array(N*3), col=new Float32Array(N*3), data=[];
+  for(let i=0;i<N;i++) data.push({life:Math.random()});
+  const geo=new T.BufferGeometry();
+  geo.setAttribute('position',new T.BufferAttribute(pos,3));
+  geo.setAttribute('color',new T.BufferAttribute(col,3));
+  const mat=new T.PointsMaterial({ size:1.15, map:fireTex(), vertexColors:true, transparent:true,
+    blending:T.AdditiveBlending, depthWrite:false, opacity:.95 });
+  const pts=new T.Points(geo,mat); pts.frustumCulled=false; scene.add(pts); levelMeshes.push(pts);
+  const light=new T.PointLight(0xff5a10,0.9,Math.max(w,d)*1.4); light.position.set(x,1.2,z); scene.add(light); levelMeshes.push(light);
+  fires.push({ geo,data,x,z,w,d,N });
+}
+function updateFires(dt){
+  for(const f of fires){
+    const p=f.geo.attributes.position.array, c=f.geo.attributes.color.array;
+    for(let i=0;i<f.N;i++){
+      const d=f.data[i]; d.life-=dt*(1.1+d.sp*0.6||1.4);
+      if(d.life<=0){ d.life=1; d.sp=0.6+Math.random(); d.x=f.x+(Math.random()-.5)*f.w*0.9;
+        d.z=f.z+(Math.random()-.5)*f.d*0.9; d.y=0.15; d.vx=(Math.random()-.5)*0.3; d.vz=(Math.random()-.5)*0.3; }
+      d.y+=(1.6+d.sp)*dt; d.x+=d.vx*dt; d.z+=d.vz*dt;
+      p[i*3]=d.x; p[i*3+1]=d.y; p[i*3+2]=d.z;
+      const t=1-d.life; // 0 taban(sıcak) -> 1 tepe(soğuk)
+      c[i*3]=1; c[i*3+1]=Math.max(0,0.9-t*1.1); c[i*3+2]=Math.max(0,0.5-t*1.4);
+    }
+    f.geo.attributes.position.needsUpdate=true; f.geo.attributes.color.needsUpdate=true;
+  }
+}
+function floorPatch(x,z,w,d){
+  const m=new T.Mesh(new T.PlaneGeometry(w,d), new T.MeshStandardMaterial({map:TEX.stone,roughness:.95}));
+  m.rotation.x=-Math.PI/2; m.position.set(x,0,z); m.receiveShadow=true; scene.add(m); levelMeshes.push(m);
+}
+function makeTorch(x,z,y){
+  const g=new T.Group(); g.position.set(x,y||0,z);
+  g.add(new T.Mesh(new T.CylinderGeometry(0.1,0.13,1.5,8), new T.MeshStandardMaterial({color:0x3a2412}))).position.y=0.75;
+  const bowl=new T.Mesh(new T.SphereGeometry(0.26,10,8), new T.MeshStandardMaterial({color:0x222,emissive:0x000000})); bowl.position.y=1.6; g.add(bowl);
+  const fl=new T.PointLight(0xff7a18,0,7); fl.position.y=1.9; g.add(fl);
+  const flame=new T.Sprite(new T.SpriteMaterial({map:sparkTex(),color:0xff8a2a,transparent:true,blending:T.AdditiveBlending,depthWrite:false}));
+  flame.scale.set(0.9,1.2,1); flame.position.y=1.95; flame.visible=false; g.add(flame);
+  scene.add(g); levelMeshes.push(g);
+  torches.push({ g,x,z,y:(y||0)+1.3,lit:false,bowl,fl,flame });
+}
+function makeValve(x,z){
+  const g=new T.Group(); g.position.set(x,0,z);
+  g.add(new T.Mesh(new T.BoxGeometry(0.7,1,0.7), new T.MeshStandardMaterial({color:0x2a3540}))).position.y=0.5;
+  const wheel=new T.Mesh(new T.TorusGeometry(0.38,0.09,8,16), new T.MeshStandardMaterial({color:0x4aa0d0,emissive:0x0a3050,emissiveIntensity:.6})); wheel.position.set(0,1.1,0.1); g.add(wheel);
+  scene.add(g); levelMeshes.push(g); valve={ g,x,z,wheel,active:false };
+}
+function makePlate(x,z){
+  const m=new T.Mesh(new T.CylinderGeometry(0.9,0.9,0.14,20), new T.MeshStandardMaterial({color:0x666,emissive:0x000000,emissiveIntensity:.8}));
+  m.position.set(x,0.07,z); scene.add(m); levelMeshes.push(m); plates.push({ x,z,mesh:m,on:false });
+}
+function makeGoal(x,z,color){
+  const m=new T.Mesh(new T.CylinderGeometry(0.9,0.9,0.2,24), new T.MeshStandardMaterial({color,emissive:color,emissiveIntensity:1,transparent:true,opacity:.85}));
+  m.position.set(x,0.1,z); scene.add(m); levelMeshes.push(m);
+  const beam=new T.Mesh(new T.CylinderGeometry(0.75,0.75,6,16), new T.MeshBasicMaterial({color,transparent:true,opacity:.1}));
+  beam.position.set(x,3,z); scene.add(beam); levelMeshes.push(beam);
+  return { x,z };
+}
+function makeKulge(x,z){
+  const rig=new T.Group();
+  const dark=new T.MeshStandardMaterial({color:0x070709, emissive:0x160020, emissiveIntensity:.6, roughness:1});
+  const robe=new T.Mesh(new T.ConeGeometry(1.05,3.3,14), dark); robe.position.y=1.55; rig.add(robe);   // gövde/pelerin (tabana oturur)
+  const hood=new T.Mesh(new T.ConeGeometry(0.6,1.15,14), dark); hood.position.y=3.1; rig.add(hood);     // kapüşon (gövdeyle bitişik)
+  const head=new T.Mesh(new T.SphereGeometry(0.33,14,12), new T.MeshStandardMaterial({color:0,emissive:0x120018,roughness:1})); head.position.set(0,3.0,0.06); rig.add(head);
+  const eyeMat=new T.MeshBasicMaterial({color:0xff1030});
+  const eL=new T.Mesh(new T.SphereGeometry(0.075,8,8),eyeMat); eL.position.set(-0.12,3.05,0.3);
+  const eR=eL.clone(); eR.position.x=0.12; rig.add(eL,eR);
+  const glow=new T.PointLight(0xff0033,0.9,6.5); glow.position.set(0,3.05,0.3); rig.add(glow);
+  const arm=side=>{ const a=new T.Group(); a.position.set(side*0.6,2.6,0.1);
+    const l=new T.Mesh(new T.CylinderGeometry(0.09,0.14,1.4,8),dark); l.position.y=-0.6; a.add(l); rig.add(a); a.rotation.x=-0.35; return a; };
+  const arms=[arm(-1),arm(1)];
+  const wisps=[]; for(let i=0;i<3;i++){ const w=new T.Mesh(new T.SphereGeometry(0.5,8,8), new T.MeshBasicMaterial({color:0x120018,transparent:true,opacity:.3}));
+    const ang=i/3*Math.PI*2; w.position.set(Math.cos(ang)*0.7,0.4,Math.sin(ang)*0.7); w.scale.y=1.5; rig.add(w); wisps.push(w); }
+  rig.position.set(x,0,z); scene.add(rig); levelMeshes.push(rig);
+  kulge={ g:rig, arms, wisps, glow };
+}
+
+// ---------- çeper yardımcıları: tam kapalı oda (kenar başına tek kapı boşluğu) ----------
+function sideH(z,x1,x2,gap){ if(!gap){hWall(z,x1,x2);return;} hWall(z,x1,gap[0]); hWall(z,gap[1],x2); }
+function sideV(x,z1,z2,gap){ if(!gap){vWall(x,z1,z2);return;} vWall(x,z1,gap[0]); vWall(x,gap[1],z2); }
+function box4(x1,x2,z1,z2,g){ g=g||{}; sideH(z1,x1,x2,g.s); sideH(z2,x1,x2,g.n); sideV(x1,z1,z2,g.w); sideV(x2,z1,z2,g.e); }
+function corridor(x1,x2,z1,z2){ vWall(x1,z1,z2); vWall(x2,z1,z2); }
+function makeWallTorch(x,z){ // dekoratif duvar meşalesi (hep yanık)
+  const g=new T.Group(); g.position.set(x,2.1,z);
+  g.add(new T.Mesh(new T.CylinderGeometry(0.05,0.08,0.6,6), new T.MeshStandardMaterial({color:0x2a2a30}))).position.y=-0.3;
+  const flame=new T.Sprite(new T.SpriteMaterial({map:fireTex(),color:0xffa838,transparent:true,blending:T.AdditiveBlending,depthWrite:false}));
+  flame.scale.set(0.75,1.2,1); flame.position.y=0.3; g.add(flame);
+  g.add(new T.PointLight(0xff8a30,0.85,8)).position.y=0.35;
+  scene.add(g); levelMeshes.push(g); torches.push({flame,x,z,lit:true});
+}
+
+// ---------- 5 bölüm (tam kapalı, uzun; ölümcül havuzlar = gerçek engel) ----------
+function level1(){ // Uyanış — element geçişi + meşale + zıplama
+  box4(-9,9,-4,10,{n:[-2,2]});
+  pool(-5,3,7,8,'lava'); pool(5,3,7,8,'water'); vWall(0,-1,7);
+  makeTorch(-3,8.5); makeTorch(3,8.5); doorTorch=door(0,10,4);
+  corridor(-2,2,10,16);
+  box4(-9,9,16,32,{s:[-2,2]});
+  platform(-4,21,3,2.4,0.9); platform(0,24,3,2.4,1.3); platform(4,27,3,2.4,0.9);
+  makeWallTorch(-8.6,22); makeWallTorch(8.6,26);
+  makeGem(-5,3); makeGem(0,24,1.3); makeGem(7,30);
+  goalFire=makeGoal(-3,30,0xff7a18); goalWater=makeGoal(3,30,0x2fd0ff);
+  return { fire:[-3,-2], water:[3,-2], chase:false, name:'Bölüm 1 · Uyanış Odası',
+    atmos:{fog:0x0a0e18,near:26,far:70,hemi:0x8899cc,dir:0xffffff},
+    hint:()=> !torches.every(t=>t.lit) ? `🔥 Alev lavdan geçip iki meşaleyi yaksın (${keyLabel(bindFire.interact)}). 💧 Damla sudan geçsin — yanlış sıvı ölümcül!` : 'Platformlardan zıplayıp pedlere ulaşın.' };
+}
+function level2(){ // Buhar Fabrikası — valf + testere + platform köprü + plaka
+  box4(-10,10,-4,12,{n:[-2,2]});
+  pool(-6,4,7,9,'lava'); pool(6,4,7,9,'water'); vWall(0,-1,8.5);
+  makeValve(6,10); doorValve=door(0,12,4);
+  corridor(-2,2,12,18);
+  box4(-11,11,18,36,{s:[-2,2],n:[-2,2]});
+  pool(0,26,9,8,'lava');
+  platform(-3,23,2.4,2.4,0.9); platform(0,26,2.4,2.4,0.9); platform(3,29,2.4,2.4,0.9);
+  makeSaw(-5,21); makeSaw(5,31);
+  makeWallTorch(-10.6,26); makeWallTorch(10.6,26);
+  corridor(-2,2,36,42);
+  box4(-9,9,42,56,{s:[-2,2]});
+  makePlate(-4,47); makePlate(4,47);
+  hWall(51,-9,-2); hWall(51,2,9); gateDual=door(0,51,4);
+  makeGem(-6,4); makeGem(0,26,0.9); makeGem(7,47);
+  goalFire=makeGoal(-3,54,0xff7a18); goalWater=makeGoal(3,54,0x2fd0ff);
+  return { fire:[-3,-2], water:[3,-2], chase:false, name:'Bölüm 2 · Buhar Fabrikası',
+    atmos:{fog:0x140e08,near:24,far:64,hemi:0xccaa88,dir:0xffe8cc},
+    hint:()=> !valve.active ? `💧 Damla valfi açsın (${keyLabel(bindWater.interact)}). 🔥 Alev lavdan geçer.`
+      : (gateDual.solid ? 'Testereden kaçın — Damla platformlarla lavı geçsin, ikiniz de plakalara basın.' : 'Kuzeydeki çıkışa ulaşın.') };
+}
+function level3(){ // Terk Edilmiş Kanal — ayrı element koridorları + tehlikeler
+  box4(-12,12,-4,44,{n:[-2,2]});
+  vWall(0,-2,40);
+  pool(-6,16,11,34,'lava'); makeSaw(-6,12); makeSaw(-5,24); makeSaw(-7,34);
+  pool(6,16,11,34,'water'); makeAxe(6,14); makeAxe(6,30);
+  makeWallTorch(-11.6,10); makeWallTorch(-11.6,32); makeWallTorch(11.6,22);
+  makeGem(-6,8); makeGem(6,20); makeGem(-6,38);
+  goalFire=makeGoal(-4,42,0xff7a18); goalWater=makeGoal(4,42,0x2fd0ff);
+  return { fire:[-4,-2], water:[4,-2], chase:false, name:'Bölüm 3 · Terk Edilmiş Kanal',
+    atmos:{fog:0x08120e,near:22,far:58,hemi:0x557766,dir:0xbfeedd},
+    hint:()=> 'Ayrı kanallardan ilerleyin — Alev solda lavda, Damla sağda suda. Testere/baltadan sakının!' };
+}
+function level4real(){
+  // sol ve sağ yarıyı ayıran tam bölen
+  vWall(0,-4,26);
+  // dış çeper (kuzey hariç)
+  hWall(-4,-13,13); vWall(-13,-4,38); vWall(13,-4,38); hWall(38,-13,13);
+  // kuzey duvar: iki kapı boşluğu (sol x-9..-4, sağ x4..9)
+  hWall(26,-13,-9); hWall(26,-4,0); hWall(26,0,4); hWall(26,9,13);
+  doorTorch=door(-6.5,26,5); doorValve=door(6.5,26,5);
+  // SOL yarı (Alev): lav + testere + 2 meşale
+  pool(-7,6,11,9,'lava'); makeSaw(-4,3);
+  makeTorch(-11,18); makeTorch(-4,18);
+  // SAĞ yarı (Damla): su + balta + valf
+  pool(7,6,11,9,'water'); makeAxe(7,10); makeValve(11,18);
+  makeWallTorch(-12.6,20); makeWallTorch(12.6,20);
+  makeGem(-7,6); makeGem(7,6); makeGem(0,32);
+  goalFire=makeGoal(-3,34,0xff7a18); goalWater=makeGoal(3,34,0x2fd0ff);
+  return { fire:[-4,-2], water:[4,-2], chase:false, name:'Bölüm 4 · Ayrılık Labirenti',
+    atmos:{fog:0x0c0a16,near:22,far:58,hemi:0x6a6a99,dir:0xd8d0ff},
+    hint:()=> 'Ayrıldınız! 🔥 Alev meşaleleri yaksın, 💧 Damla valfi açsın — herkes kendi kapısından geçip kuzeyde buluşsun.' };
+}
+function level5(){ // Külge'den Kaçış — bulmaca + uzun kovalamaca finali
+  box4(-12,12,-4,10,{n:[-2,2]});
+  pool(-5,3,7,7,'lava'); pool(5,3,7,7,'water'); vWall(0,-1,7);
+  makeTorch(-3,8); makeTorch(3,8); doorTorch=door(0,10,4);
+  corridor(-2,2,10,14);
+  box4(-12,12,14,56,{s:[-2,2]});
+  pool(-6,26,9,12,'lava'); pool(7,36,9,12,'water');
+  platform(0,20,3,3,0.9); platform(4,24,3,3,1.3); platform(-4,30,3,3,0.9);
+  makeAxe(0,42); makeSaw(-6,47); makeSaw(6,50);
+  makeMover(0,33,3,2,0.8,'x',5,1.0);
+  makeKulge(0,16);
+  makeWallTorch(-11.6,30); makeWallTorch(11.6,44);
+  makeGem(0,20,0.9); makeGem(8,40); makeGem(-8,50);
+  goalFire=makeGoal(-3,54,0xff7a18); goalWater=makeGoal(3,54,0x2fd0ff);
+  return { fire:[-3,-2], water:[3,-2], chase:true, chaseZ:16, exitZ:52, cp:[0,0,16], name:'Bölüm 5 · Külge’den Kaçış',
+    atmos:{fog:0x140306,near:20,far:56,hemi:0x66445a,dir:0xffd0d0},
+    hint:()=> 'Kapıyı açın, sonra KAÇIN! Külge peşinizde — engellerden geçip kuzey çıkışa koşun.' };
+}
+const LEVELS=[level1,level2,level3,level4real,level5];
+
+function clearLevel(){
+  for(const m of levelMeshes) scene.remove(m);
+  levelMeshes.length=0; solids.length=0; zones.length=0; torches.length=0; plates.length=0; animated.length=0;
+  gems.length=0; movers.length=0; hazards.length=0; fires.length=0; gemsGot=0; gemsTotal=0;
+  doorTorch=doorValve=gateDual=valve=kulge=null; kulgeActive=false;
+  dirLight.intensity=0.85; scene.background=new T.Color(0x05060a);
+}
+function loadLevel(i){
+  curLevel=i; clearLevel();
+  const cfg=LEVELS[i]();
+  fire.spawn.set(cfg.fire[0],0,cfg.fire[1]); water.spawn.set(cfg.water[0],0,cfg.water[1]);
+  respawnTo(fire,fire.spawn); respawnTo(water,water.spawn);
+  levelHasChase=!!cfg.chase; levelChaseZ=cfg.chaseZ||0; levelExitZ=cfg.exitZ||0;
+  if(cfg.cp) chaseCP.set(cfg.cp[0],cfg.cp[1],cfg.cp[2]); curHint=cfg.hint;
+  if(cfg.atmos){ const a=cfg.atmos; scene.fog.color.setHex(a.fog); scene.fog.near=a.near; scene.fog.far=a.far;
+    scene.background.setHex(a.fog); if(hemi) hemi.color.setHex(a.hemi); dirLight.color.setHex(a.dir); }
+  document.getElementById('levelName').textContent=cfg.name; banner(cfg.name);
+  document.getElementById('gemCount').textContent=gemsGot+'/'+gemsTotal;
+}
+function respawnTo(p,pos){ p.g.position.copy(pos); p.g.position.y=0; p.vel.set(0,0,0); p.health=100; p.invuln=1; }
+function banner(txt){ const b=document.getElementById('banner'); b.textContent=txt; b.style.opacity=1; setTimeout(()=>b.style.opacity=0,1600); }
+
+// ---------- fizik: yan-itme + üstte durma (platform) ----------
+const R=0.5, STEP=0.5, SPEED=6.5, JUMP=8.6, G=22;
+function push(px,pz,s){
+  const cx=Math.max(s.minX,Math.min(px,s.maxX)), cz=Math.max(s.minZ,Math.min(pz,s.maxZ));
+  const dx=px-cx, dz=pz-cz, d2=dx*dx+dz*dz;
+  if(d2<R*R){ const d=Math.sqrt(d2)||1e-4,k=(R-d)/d; px+=dx*k; pz+=dz*k; } return [px,pz];
+}
+function footprint(px,pz,s,m){ return px>s.minX-m&&px<s.maxX+m&&pz>s.minZ-m&&pz<s.maxZ+m; }
+function resolve(p){
+  let px=p.g.position.x, pz=p.g.position.z; const py=p.g.position.y;
+  for(let it=0;it<2;it++){
+    for(const s of solids){ if(s.solid===false||s.top<=py+STEP) continue; [px,pz]=push(px,pz,s); }
+    for(const s of bounds){ if(s.top<=py+STEP) continue; [px,pz]=push(px,pz,s); }
+  }
+  let support=0;
+  for(const s of solids){ if(s.solid===false||!s.stand) continue; if(s.top<=py+STEP&&s.top>support&&footprint(px,pz,s,R*0.5)) support=s.top; }
+  p.g.position.x=Math.max(-40,Math.min(40,px)); p.g.position.z=Math.max(-20,Math.min(130,pz)); p._support=support;
+}
+function movePlayer(p,dt){
+  const who=p===fire?'fire':'water';
+  const cam=p.cam||camera;
+  const f=new T.Vector3(); cam.getWorldDirection(f); f.y=0; f.normalize();
+  const r=new T.Vector3().crossVectors(f,up).normalize();
+  const dir=new T.Vector3();
+  if(inp(who,'up'))dir.add(f); if(inp(who,'down'))dir.sub(f); if(inp(who,'right'))dir.add(r); if(inp(who,'left'))dir.sub(r);
+  const moving=dir.lengthSq()>0;
+  if(moving){ dir.normalize(); p.g.position.x+=dir.x*SPEED*dt; p.g.position.z+=dir.z*SPEED*dt; p.g.rotation.y=Math.atan2(dir.x,dir.z); }
+  if(inp(who,'jump')&&p.grounded){ p.vel.y=JUMP; p.grounded=false; SFX.jump(); }
+  p.vel.y-=G*dt; p.g.position.y+=p.vel.y*dt;
+  resolve(p);
+  if(p.g.position.y<=p._support){ p.g.position.y=p._support; p.vel.y=0; p.grounded=true; } else p.grounded=false;
+  p.phase+=(moving?10:3)*dt; const sw=Math.sin(p.phase)*(moving?0.5:0.08);
+  p.legs[0].rotation.x=sw; p.legs[1].rotation.x=-sw; p.arms[0].rotation.x=-sw; p.arms[1].rotation.x=sw;
+  if(moving&&p.grounded){ p.footClock+=dt; if(p.footClock>0.32){ p.footClock=0; SFX.step(); } }
+}
+function inZone(p,type){ const x=p.g.position.x,z=p.g.position.z;
+  return p.g.position.y<0.6 && zones.some(q=>q.type===type&&x>q.minX&&x<q.maxX&&z>q.minZ&&z<q.maxZ); }
+function damage(p,dt){
+  const bad=(p===fire)?'water':'lava';
+  // yanlış eleman = ölümcül bariyer (içinden yürünemez); doğru eleman güvenli
+  if(inZone(p,bad)){ p.health-=200*dt; if(p.invuln<=0){ flash(); } }
+  else if(p.health<100) p.health+=14*dt;
+  if(p.invuln>0) p.invuln-=dt;
+  if(p.health<=0) respawn(p); p.health=Math.max(0,Math.min(100,p.health));
+}
+function anyBeyond(z){ return fire.g.position.z>z||water.g.position.z>z; }
+function respawn(p){ const cp=(levelHasChase&&anyBeyond(levelChaseZ))?chaseCP:p.spawn;
+  p.g.position.copy(cp); p.g.position.x+=(p===fire?-1:1); p.g.position.y=0; p.vel.set(0,0,0); p.health=100; p.invuln=1.2; SFX.hurt(); }
+function updateGems(t){
+  for(const gm of gems){ if(gm.got) continue;
+    gm.g.rotation.y+=0.05; gm.g.position.y=gm.y+Math.sin(t*2+gm.x)*0.12;
+    if(near(fire,gm.x,gm.z,1.1)||near(water,gm.x,gm.z,1.1)){
+      gm.got=true; gm.g.visible=false; gemsGot++; gemsAll++; SFX.gem();
+      document.getElementById('gemCount').textContent=gemsGot+'/'+gemsTotal;
+    }
+  }
+}
+
+function near(p,x,z,r=1.8){ const dx=p.g.position.x-x,dz=p.g.position.z-z; return dx*dx+dz*dz<r*r; }
+function openDoor(d){ if(!d||!d.solid) return; d.solid=false; SFX.door();
+  (function s(){ if(d.mesh.position.y>-3){ d.mesh.position.y-=0.12; requestAnimationFrame(s);} })(); }
+function interactions(){
+  for(const t of torches) if(!t.lit&&near(fire,t.x,t.z,1.7)&&Math.abs(fire.g.position.y+1.3-t.y)<1.1&&inp('fire','interact')){
+    t.lit=true; t.bowl.material.emissive.setHex(0xff6a00); t.bowl.material.emissiveIntensity=1.4; t.fl.intensity=1.6; t.flame.visible=true; SFX.torch(); }
+  if(doorTorch&&torches.length&&torches.every(t=>t.lit)) openDoor(doorTorch);
+  if(valve&&!valve.active&&near(water,valve.x,valve.z)&&inp('water','interact')){ valve.active=true; valve.wheel.material.emissive.setHex(0x2fd0ff); SFX.valve(); }
+  if(valve&&valve.active){ valve.wheel.rotation.z+=0.08; openDoor(doorValve); }
+  if(plates.length===2){ const a=plates[0],b=plates[1];
+    a.on=near(fire,a.x,a.z,1.2)||near(water,a.x,a.z,1.2); b.on=near(fire,b.x,b.z,1.2)||near(water,b.x,b.z,1.2);
+    plates.forEach(pl=>pl.mesh.material.emissive.setHex(pl.on?0x33ff88:0x000000));
+    if(a.on&&b.on) openDoor(gateDual); }
+}
+
+function startHum(){ if(chaseGain&&actx) chaseGain.gain.linearRampToValueAtTime(0.12, actx.currentTime+1.2); }
+function stopHum(){ if(chaseGain&&actx) chaseGain.gain.linearRampToValueAtTime(0, actx.currentTime+0.6); }
+
+function updateChase(dt,t){
+  if(!levelHasChase) return;
+  if(!kulgeActive&&anyBeyond(levelChaseZ)){ kulgeActive=true; startHum(); }
+  if(!kulgeActive||!kulge) return;
+  dirLight.intensity=0.32+Math.random()*0.45;
+  scene.background=new T.Color(Math.random()<0.08?0x2a0008:0x05060a);
+  const tgt=fire.g.position.distanceTo(kulge.g.position)<water.g.position.distanceTo(kulge.g.position)?fire:water;
+  const d=new T.Vector3().subVectors(tgt.g.position,kulge.g.position); d.y=0; const dist=d.length();
+  if(dist>0.01){ d.normalize(); kulge.g.position.addScaledVector(d,5.3*dt); }
+  kulge.g.position.y=0.1+Math.sin(t*3)*0.12;
+  kulge.g.lookAt(tgt.g.position.x,kulge.g.position.y,tgt.g.position.z);
+  kulge.arms[0].rotation.x=-0.5+Math.sin(t*3)*0.4; kulge.arms[1].rotation.x=-0.5+Math.sin(t*3+1)*0.4;
+  kulge.glow.intensity=0.8+Math.sin(t*11)*0.35;
+  kulge.wisps.forEach((w,i)=>{ w.position.y=0.5+Math.sin(t*2+i)*0.3; });
+  for(const p of [fire,water]) if(p.invuln<=0&&p.g.position.distanceTo(kulge.g.position)<1.5){
+    flash(); p.health=Math.max(1,p.health-40); respawn(p); kulge.g.position.z-=4; }
+  if(fire.g.position.z>levelExitZ&&water.g.position.z>levelExitZ){ kulgeActive=false; if(kulge)kulge.g.visible=false; stopHum();
+    dirLight.intensity=0.9; scene.background=new T.Color(0x05060a); }
+}
+function flash(){ const f=document.getElementById('chaseFlash'); f.style.opacity=.55; setTimeout(()=>f.style.opacity=0,120); }
+
+function checkComplete(){
+  if(transitioning||won) return;
+  if(levelHasChase&&kulgeActive) return;
+  if(near(fire,goalFire.x,goalFire.z,1.3)&&near(water,goalWater.x,goalWater.z,1.3)){
+    transitioning=true;
+    SFX.win();
+    if(curLevel<LEVELS.length-1){ banner('Bölüm tamamlandı!'); setTimeout(()=>{ loadLevel(curLevel+1); transitioning=false; },1400); }
+    else { won=true; stopHum(); document.getElementById('gemFinal').textContent=gemsAll; document.getElementById('winScreen').classList.remove('hidden'); }
+  }
+}
+function camCollide(target,want){
+  const dir=want.clone().sub(target); const len=dir.length()||1e-4; dir.normalize();
+  ray.set(target,dir); ray.far=len;
+  const hit=ray.intersectObjects([...solids.map(s=>s.mesh),...boundMeshes],false);
+  return hit.length ? target.clone().add(dir.multiplyScalar(Math.max(3,hit[0].distance-0.5))) : want;
+}
+function followCam(cam,p){
+  const tx=p.g.position.x, tz=p.g.position.z, dist=camDistBase;
+  const target=new T.Vector3(tx,1.2,tz);
+  let want=new T.Vector3(tx+Math.sin(camYaw)*Math.cos(camPitch)*-dist, Math.sin(camPitch)*dist+1.5, tz+Math.cos(camYaw)*Math.cos(camPitch)*-dist);
+  want=camCollide(target,want); cam.position.lerp(want,0.16); cam.lookAt(target);
+}
+function updateCamera(){
+  if(split){ followCam(camFire,fire); followCam(camWater,water); return; }
+  const mid=new T.Vector3().addVectors(fire.g.position,water.g.position).multiplyScalar(0.5);
+  const sep=fire.g.position.distanceTo(water.g.position), dist=Math.min(28,camDistBase+sep*0.55);
+  const target=new T.Vector3(mid.x,1.2,mid.z);
+  let want=new T.Vector3(mid.x+Math.sin(camYaw)*Math.cos(camPitch)*-dist, Math.sin(camPitch)*dist+1.5, mid.z+Math.cos(camYaw)*Math.cos(camPitch)*-dist);
+  camera.position.lerp(camCollide(target,want),0.14); camera.lookAt(target);
+}
+function animateWorld(time){
+  for(const a of animated){
+    const pos=a.geo.attributes.position.array;
+    for(let i=0;i<pos.length;i+=3){ const bx=a.base[i],by=a.base[i+1];
+      pos[i+2]=Math.sin(bx*1.5+time*(a.type==='lava'?1.5:2.5))*0.06+Math.cos(by*1.3+time*2)*0.06; }
+    a.geo.attributes.position.needsUpdate=true;
+    if(a.type==='lava') a.mesh.material.emissiveIntensity=0.7+Math.sin(time*3)*0.25;
+  }
+}
+
+const _sz=new T.Vector2();
+function renderFrame(){
+  if(split){
+    renderer.getSize(_sz); const W=_sz.x, H=_sz.y, a=(W/2)/H;
+    if(camFire.aspect!==a){ camFire.aspect=camWater.aspect=a; camFire.updateProjectionMatrix(); camWater.updateProjectionMatrix(); }
+    renderer.setScissorTest(true);
+    renderer.setViewport(0,0,W/2,H); renderer.setScissor(0,0,W/2,H); renderer.render(scene,camFire);
+    renderer.setViewport(W/2,0,W/2,H); renderer.setScissor(W/2,0,W/2,H); renderer.render(scene,camWater);
+    renderer.setScissorTest(false); renderer.setViewport(0,0,W,H);
+    return;
+  }
+  if(composer) composer.render(); else renderer.render(scene,camera);
+}
+function tick(){ requestAnimationFrame(tick); const dt=Math.min(0.05,clock.getDelta()); frame(dt,clock.elapsedTime); renderFrame(); }
+function frame(dt,t){
+  if(mixers.length) mixers.forEach(m=>m.update(dt));
+  if(started&&!won&&!paused){
+    updateMovers(t);
+    movePlayer(fire,dt);
+    movePlayer(water,dt);
+    damage(fire,dt); damage(water,dt);
+    updateHazards(t); interactions(); updateChase(dt,t); updateCamera(); checkComplete(); animateWorld(t); updateFires(dt);
+    updateGems(t); updateAura(fire.aura,fire.g.position.x,fire.g.position.z,dt); updateAura(water.aura,water.g.position.x,water.g.position.z,dt);
+    for(const t2 of torches) if(t2.flame) t2.flame.material.opacity=0.7+Math.sin(t*20+t2.x)*0.3;
+    for(const p of [fire,water]){
+      p.mat.emissiveIntensity=0.75+Math.sin(t*8+p.phase)*0.2;
+      p.head.position.y=1.85+Math.sin(t*3+p.phase)*0.03;
+      p.mat.opacity=p.invuln>0?(Math.sin(Date.now()*0.03)>0?0.4:1):1; p.mat.transparent=true;
+      p.standee.material.opacity=p.invuln>0?(Math.sin(Date.now()*0.03)>0?0.4:1):1;
+    }
+    document.querySelector('#hpFire .fill').style.width=fire.health+'%';
+    document.querySelector('#hpWater .fill').style.width=water.health+'%';
+    document.getElementById('objective').textContent=curHint();
+  }
+}
+
+function init(){
+  scene=new T.Scene(); scene.background=new T.Color(0x05060a); scene.fog=new T.Fog(0x05060a,24,60);
+  camera=new T.PerspectiveCamera(58,innerWidth/innerHeight,0.1,300);
+  camFire=new T.PerspectiveCamera(62,(innerWidth/2)/innerHeight,0.1,300);
+  camWater=new T.PerspectiveCamera(62,(innerWidth/2)/innerHeight,0.1,300);
+  renderer=new T.WebGLRenderer({antialias:true, preserveDrawingBuffer:true}); renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=T.PCFSoftShadowMap;
+  app.appendChild(renderer.domElement); clock=new T.Clock();
+
+  TEX.wall=brickTex('#6b6f7a','#2a2d35'); TEX.plat=brickTex('#7a6a52','#2e2820');
+  TEX.stone=noiseTex('#2a2e38','#191c24',6,16); TEX.door=noiseTex('#6a4420','#331f0c',5);
+  TEX.lava=noiseTex('#a01e00','#ff9a20',5); TEX.water=noiseTex('#0a3a88','#7fe0ff',4);
+
+  hemi=new T.HemisphereLight(0x8899cc,0x0a0a14,0.5); scene.add(hemi);
+  dirLight=new T.DirectionalLight(0xffffff,0.85); dirLight.position.set(8,20,6); dirLight.castShadow=true;
+  dirLight.shadow.mapSize.set(1024,1024); dirLight.shadow.camera.left=-28; dirLight.shadow.camera.right=28;
+  dirLight.shadow.camera.top=28; dirLight.shadow.camera.bottom=-28; scene.add(dirLight);
+
+  const ground=new T.Mesh(new T.PlaneGeometry(160,220), new T.MeshStandardMaterial({map:TEX.stone,roughness:1}));
+  ground.rotation.x=-Math.PI/2; ground.position.set(0,-0.02,40); ground.receiveShadow=true; scene.add(ground);
+  // dış sınır duvarları KALDIRILDI — her bölüm kendi çeper duvarlarıyla çevrili (labirent-içinde-labirent yok)
+
+  fire=makePlayer(0xff5a10,'#ff9d3f',0xff3a00,'fire'); water=makePlayer(0x2aa8ff,'#5fd8ff',0x0a5aff,'water');
+
+  if(!location.search.includes('nobloom')) try{
+    composer=new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene,camera));
+    composer.addPass(new T.UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),0.75,0.5,0.28));
+  }catch(e){ composer=null; }
+
+  renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;});
+  addEventListener('pointerup',()=>dragging=false);
+  addEventListener('pointermove',e=>{ if(dragging){ camYaw+=(e.clientX-lastX)*0.006;
+    camPitch=Math.max(0.28,Math.min(1.2,camPitch+(e.clientY-lastY)*0.004)); lastX=e.clientX; lastY=e.clientY; }});
+  addEventListener('wheel',e=>{ camDistBase=Math.max(9,Math.min(26,camDistBase+e.deltaY*0.01)); },{passive:true});
+  addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight); if(composer) composer.setSize(innerWidth,innerHeight); });
+
+  window.__g={ get fire(){return fire}, get water(){return water}, get camera(){return camera}, get scene(){return scene},
+    get started(){return started}, get level(){return curLevel}, get solids(){return solids},
+    get binds(){return {fire:{...bindFire},water:{...bindWater}}}, get valveActive(){return valve&&valve.active},
+    get keys(){return {...keys}}, loadLevel,
+    setYaw(v){camYaw=v;}, frame, render:renderFrame, drive(n){ for(let i=0;i<n;i++) frame(0.016,i*0.016); renderFrame(); } };
+  tick();
+}
+
+document.getElementById('fileFire').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; loadFace(fire,f);
+  document.getElementById('thumbFire').style.backgroundImage=`url(${URL.createObjectURL(f)})`; });
+document.getElementById('fileWater').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; loadFace(water,f);
+  document.getElementById('thumbWater').style.backgroundImage=`url(${URL.createObjectURL(f)})`; });
+document.getElementById('modelFire').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) loadModel(fire,f); });
+document.getElementById('modelWater').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) loadModel(water,f); });
+document.getElementById('startBtn').addEventListener('click',()=>{
+  useStandee=document.getElementById('fotoFigur').checked; applyMode(fire); applyMode(water);
+  split=document.getElementById('splitMode').checked;
+  if(split){ fire.cam=camFire; water.cam=camWater; document.getElementById('splitLine').classList.remove('hidden'); }
+  assignPads(); showTouch();
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('topbar').classList.remove('hidden');
+  document.getElementById('gems').classList.remove('hidden');
+  try{ audioInit(); actx.resume(); }catch(e){}
+  loadLevel(0); started=true;
+});
+document.getElementById('againBtn').addEventListener('click',()=>location.reload());
+
+buildCtrls('ctrlFire',bindFire); buildCtrls('ctrlWater',bindWater);
+
+// --- dokunmatik kontroller (mobil) ---
+function buildTouch(){
+  const box=document.getElementById('touchCtrls');
+  const mk=(who,act,label,style)=>{
+    const b=document.createElement('button'); b.className='tbtn '+who; b.textContent=label;
+    Object.assign(b.style,style);
+    const on=e=>{ e.preventDefault(); touchIn[who][act]=true; };
+    const off=e=>{ e.preventDefault(); touchIn[who][act]=false; };
+    b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off);
+    b.addEventListener('pointercancel',off); b.addEventListener('pointerleave',off);
+    box.appendChild(b);
+  };
+  // Alev: sol alt küme
+  mk('fire','up','▲',{left:'70px',bottom:'132px'}); mk('fire','down','▼',{left:'70px',bottom:'14px'});
+  mk('fire','left','◀',{left:'10px',bottom:'73px'}); mk('fire','right','▶',{left:'130px',bottom:'73px'});
+  mk('fire','jump','⤒',{left:'198px',bottom:'26px'}); mk('fire','interact','✦',{left:'198px',bottom:'92px'});
+  // Damla: sağ alt küme
+  mk('water','up','▲',{right:'70px',bottom:'132px'}); mk('water','down','▼',{right:'70px',bottom:'14px'});
+  mk('water','left','◀',{right:'130px',bottom:'73px'}); mk('water','right','▶',{right:'10px',bottom:'73px'});
+  mk('water','jump','⤒',{right:'198px',bottom:'26px'}); mk('water','interact','✦',{right:'198px',bottom:'92px'});
+}
+buildTouch();
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0 || location.search.includes('touch');
+function showTouch(){ if(isTouch) document.getElementById('touchCtrls').classList.remove('hidden'); }
+
+init();
+</script>
+</body>
+</html>
