@@ -69,6 +69,7 @@ function enterGameUI() {
   el('hud').classList.remove('hidden');
   el('topbar').classList.remove('hidden');
   el('gems').classList.remove('hidden');
+  el('timer').classList.remove('hidden');
   resumeAudio();               // ses ancak kullanici etkilesiminden sonra baslatilabilir
 }
 

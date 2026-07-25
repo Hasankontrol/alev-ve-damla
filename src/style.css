@@ -36,6 +36,11 @@ canvas { display: block; }
   position: fixed; top: 34px; right: 14px; z-index: 5;
   font-size: 15px; font-weight: 700; color: #9fe8ff; text-shadow: 0 1px 3px #000; pointer-events: none;
 }
+#timer {
+  position: fixed; top: 56px; right: 14px; z-index: 5;
+  font-size: 14px; font-weight: 700; color: #cfd2dd; text-shadow: 0 1px 3px #000; pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
 #banner {
   position: fixed; top: 42%; left: 50%; transform: translate(-50%, -50%); z-index: 6;
   font-size: 34px; font-weight: 800; text-align: center; text-shadow: 0 2px 12px #000;

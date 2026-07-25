@@ -42,6 +42,18 @@ function flash() {
   setTimeout(() => { f.style.opacity = 0; }, 120);
 }
 
+// Kamera sarsintisi — darbe hissi. Miktar her karede sonuyor.
+let shake = 0;
+const addShake = (amount) => { shake = Math.min(1, shake + amount); };
+function applyShake(cam, dt) {
+  if (shake <= 0.001) { shake = 0; return; }
+  const s = shake * 0.55;
+  cam.position.x += (Math.random() - 0.5) * s;
+  cam.position.y += (Math.random() - 0.5) * s;
+  cam.position.z += (Math.random() - 0.5) * s;
+  shake = Math.max(0, shake - dt * 2.4);
+}
+
 // ---------- bolum yukleme ----------
 /**
  * Sahneden cikarilan nesnenin GPU kaynaklarini serbest birakir.
@@ -115,17 +127,41 @@ function respawnTo(p, pos) {
   p.vel.set(0, 0, 0);
   p.health = 100;
   p.invuln = 1;
+  p.safeSpot = null;        // yeni bolum: onceki bolumun guvenli noktasi gecersiz
+  p.safeClock = 0;
+}
+
+/**
+ * Guvenli nokta: oyuncu yerdeyken, zarar vermeyen bir zeminde ve tehlikeden
+ * uzaktayken konumu kaydedilir. Olunce bolum basina degil buraya donulur —
+ * uzun bolumlerde bolum basina donmek asiri cezalandiriciydi.
+ * Kovalamaca sirasinda bu devre disi kalir (Kulge'nin dibinde dogmamak icin
+ * bolume ozel kontrol noktasi kullanilir).
+ */
+function updateSafeSpot(p, dt) {
+  p.safeClock = (p.safeClock || 0) + dt;
+  if (p.safeClock < 0.35) return;
+  p.safeClock = 0;
+  if (!p.grounded || p.invuln > 0) return;
+  if (inZone(p, 'lava') || inZone(p, 'water')) return;      // sivinin ustunde kaydetme
+  for (const h of hazards) {                                 // tehlikeye yakinsa kaydetme
+    const dx = p.g.position.x - h.x, dz = p.g.position.z - h.z;
+    if (dx * dx + dz * dz < 16) return;
+  }
+  (p.safeSpot ||= new THREE.Vector3()).copy(p.g.position);
 }
 
 function respawn(p) {
-  const cp = (S.levelHasChase && anyBeyond(S.levelChaseZ)) ? chaseCP : p.spawn;
+  const inChase = S.levelHasChase && anyBeyond(S.levelChaseZ);
+  const cp = inChase ? chaseCP : (p.safeSpot || p.spawn);
   p.g.position.copy(cp);
-  p.g.position.x += (p === S.fire ? -1 : 1);
+  if (inChase || !p.safeSpot) p.g.position.x += (p === S.fire ? -1 : 1);
   p.g.position.y = 0;
   p.vel.set(0, 0, 0);
   p.health = 100;
   p.invuln = 1.2;
   recordDeath();
+  addShake(0.8);
   SFX.hurt();
 }
 
@@ -248,6 +284,7 @@ function hitPlayer(p, dmg) {
   if (p.invuln > 0) return;
   p.health -= dmg;
   p.invuln = 0.7;
+  addShake(0.45);
   SFX.hurt();
   if (p.health <= 0) respawn(p);
 }
@@ -434,8 +471,15 @@ function followCam(cam, p) {
   cam.lookAt(target);
 }
 
-function updateCamera() {
-  if (S.split) { followCam(S.camFire, S.fire); followCam(S.camWater, S.water); return; }
+function updateCamera(dt) {
+  if (S.split) {
+    followCam(S.camFire, S.fire); followCam(S.camWater, S.water);
+    const before = shake;
+    applyShake(S.camFire, dt);
+    shake = before;                       // iki kamera da ayni sarsintiyi alsin
+    applyShake(S.camWater, dt);
+    return;
+  }
   // tek ekran: iki oyuncunun ortasini takip et, aralari acildikca geri cekil
   const mid = new THREE.Vector3().addVectors(S.fire.g.position, S.water.g.position).multiplyScalar(0.5);
   const sep = S.fire.g.position.distanceTo(S.water.g.position);
@@ -447,6 +491,7 @@ function updateCamera() {
     mid.z + Math.cos(S.camYaw) * Math.cos(S.camPitch) * -dist);
   S.camera.position.lerp(camCollide(target, want), 0.14);
   S.camera.lookAt(target);
+  applyShake(S.camera, dt);
 }
 
 function animateWorld(time) {
@@ -498,10 +543,11 @@ export function frame(dt, t) {
   movePlayer(S.fire, dt);
   movePlayer(S.water, dt);
   damage(S.fire, dt); damage(S.water, dt);
+  updateSafeSpot(S.fire, dt); updateSafeSpot(S.water, dt);
   updateHazards(t);
   interactions();
   updateChase(dt, t);
-  updateCamera();
+  updateCamera(dt);
   checkComplete();
   animateWorld(t);
   updateFires(dt);
@@ -522,6 +568,9 @@ export function frame(dt, t) {
   document.querySelector('#hpFire .fill').style.width = S.fire.health + '%';
   document.querySelector('#hpWater .fill').style.width = S.water.health + '%';
   el('objective').textContent = S.curHint();
+
+  const secs = Math.max(0, t - (S.levelStart || 0));
+  el('timeNow').textContent = `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
 }
 
 function tick() {
