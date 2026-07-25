@@ -81,6 +81,19 @@ src/
   state.js     Paylaşılan durum — döngüsel bağımlılığı önler
 ```
 
+### Yayınlama (GitHub Pages)
+
+Depo şu an **gizli**. Ücretsiz hesapta GitHub Pages yalnızca herkese açık
+depolarda çalıştığı için otomatik yayın kapalıdır.
+
+Oyunu linkle paylaşmak istersen:
+
+1. GitHub'da depo → **Settings → General → Change visibility → Public**
+2. **Settings → Pages → Source: GitHub Actions**
+3. `.github/workflows/deploy.yml` içindeki `push` tetikleyicisinin yorumunu kaldır
+
+Sonrasında her `git push` otomatik olarak yeni sürümü yayınlar.
+
 ### Notlar
 
 - `?nobloom` — parlama efektini kapatır (zayıf donanım için).
