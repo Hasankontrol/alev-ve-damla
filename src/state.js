@@ -24,7 +24,11 @@ export const S = {
 
   // akis durumu
   curLevel: 0, started: false, won: false, paused: false, muted: false,
-  transitioning: false, useStandee: false, split: false,
+  transitioning: false, useStandee: false,
+  /** O an ekran bolunmus mu (her karede yeniden karar verilir). */
+  split: false,
+  /** 'auto' = oyuncular uzaklasinca kendiliginden bolunur, 'always' = hep bolunmus. */
+  splitMode: 'auto',
 
   // kovalamaca
   levelHasChase: false, levelChaseZ: 0, levelExitZ: 0, kulgeActive: false,

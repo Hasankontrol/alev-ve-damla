@@ -518,7 +518,30 @@ function followCam(cam, p) {
   cam.lookAt(target);
 }
 
+/**
+ * Tek cihazda oynarken asil sorun suydu: iki oyuncu ayrilinca ortak kamera
+ * geri cekiliyor, ikisi de kucuculuk bir noktaya donusuyordu.
+ *
+ * Cozum: ekran oyuncular uzaklasinca KENDILIGINDEN ikiye bolunur, yaklasinca
+ * tek goruntude birlesir. Acilip kapanma titremesin diye iki farkli esik
+ * kullanilir (histerezis). Iki kamera da ayni camYaw/camPitch'i kullandigi icin
+ * gecis aninda hareket yonu degismez.
+ */
+const SPLIT_ON = 17, SPLIT_OFF = 11;
+function updateSplitState() {
+  if (S.splitMode === 'always') { S.split = true; }
+  else {
+    const sep = S.fire.g.position.distanceTo(S.water.g.position);
+    if (!S.split && sep > SPLIT_ON) S.split = true;
+    else if (S.split && sep < SPLIT_OFF) S.split = false;
+  }
+  S.fire.cam = S.split ? S.camFire : S.camera;
+  S.water.cam = S.split ? S.camWater : S.camera;
+  el('splitLine').classList.toggle('hidden', !S.split);
+}
+
 function updateCamera(dt) {
+  updateSplitState();
   if (S.split) {
     followCam(S.camFire, S.fire); followCam(S.camWater, S.water);
     const before = shake;

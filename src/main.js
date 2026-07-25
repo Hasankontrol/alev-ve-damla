@@ -45,12 +45,8 @@ function applySettingsOnce() {
   applyMode(S.fire);
   applyMode(S.water);
 
-  S.split = el('splitMode').checked;
-  if (S.split) {
-    S.fire.cam = S.camFire;
-    S.water.cam = S.camWater;
-    el('splitLine').classList.remove('hidden');
-  }
+  // Isaretliyse ekran hep bolunur; degilse oyuncular uzaklasinca otomatik bolunur.
+  S.splitMode = el('splitMode').checked ? 'always' : 'auto';
 
   assignPads();
   showTouch();
