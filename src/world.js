@@ -275,8 +275,10 @@ export function makeMover(x, z, w, d, h, axis, range, speed) {
 export function makeSaw(x, z) {
   const g = new THREE.Group();
   g.position.set(x, 0.7, z);
+  // Tehlikeler parlak lavin uzerinde siluet olarak kaybolmasin diye kendiliginden
+  // isik sacar; oyuncu testereyi her zeminde secebilmeli.
   const steel = new THREE.MeshStandardMaterial({
-    color: 0xc2c8d6, metalness: 0.85, roughness: 0.28, emissive: 0x223, emissiveIntensity: 0.35,
+    color: 0xe8ecf6, metalness: 0.6, roughness: 0.25, emissive: 0x8fa0c0, emissiveIntensity: 0.9,
   });
   const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.1, 24), steel);
   disc.rotation.x = Math.PI / 2;
@@ -301,7 +303,7 @@ export function makeAxe(x, z) {
     new THREE.MeshStandardMaterial({ color: 0x2a2a30 }))).position.y = -1.8;
   const blade = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.14),
     new THREE.MeshStandardMaterial({
-      color: 0xc8ccda, metalness: 0.85, roughness: 0.3, emissive: 0x223, emissiveIntensity: 0.35,
+      color: 0xe8ecf6, metalness: 0.6, roughness: 0.28, emissive: 0x8fa0c0, emissiveIntensity: 0.9,
     }));
   blade.position.y = -3.5;
   g.add(blade);
