@@ -25,6 +25,7 @@
 <div id="chaseFlash"></div>
 <div id="vign"></div>
 <div id="splitLine" class="hidden"></div>
+<div id="pipFrame" class="hidden"><span>💧 EŞİM</span></div>
 <div id="touchCtrls" class="hidden"></div>
 
 <div id="pauseScreen" class="overlay hidden">
@@ -67,8 +68,16 @@
     <div class="hint">Bir kutuya tıkla, sonra istediğin klavye tuşuna bas. Oyun kumandası bağlıysa otomatik çalışır. (P duraklat · R yeniden · M ses — sabit)</div>
 
     <label class="modebox"><input type="checkbox" id="fotoFigur"> 🧍 Foto figür modu (fotoğraf tüm gövde olsun)</label>
-    <label class="modebox"><input type="checkbox" id="splitMode"> 🖵 Ekran <b>her zaman</b> bölünsün</label>
-    <div class="hint">Kapalıyken ekran akıllıdır: uzaklaşınca kendiliğinden ikiye bölünür, yan yana gelince tek görüntüde birleşir.</div>
+    <div class="secTitle">🖵 Ekran düzeni</div>
+    <div class="modebox">
+      <label><input type="radio" name="viewMode" value="auto" checked> Akıllı</label>
+      <label><input type="radio" name="viewMode" value="always"> Hep bölünmüş</label>
+      <label><input type="radio" name="viewMode" value="pip"> Köşe penceresi</label>
+    </div>
+    <div class="hint">
+      <b>Akıllı:</b> uzaklaşınca ekran kendiliğinden ikiye bölünür, yan yana gelince birleşir.<br>
+      <b>Köşe penceresi:</b> ana ekran 🔥 Alev, sağ üstteki küçük pencerede 💧 Damla görünür.
+    </div>
 
     <div class="hint">
       Kendi tasarladığın 3D karakteri yükle (.glb) — Ready Player Me / VRoid / Blender ile yapabilirsin:<br>

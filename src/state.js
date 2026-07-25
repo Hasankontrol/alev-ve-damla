@@ -29,6 +29,8 @@ export const S = {
   split: false,
   /** 'auto' = oyuncular uzaklasinca kendiliginden bolunur, 'always' = hep bolunmus. */
   splitMode: 'auto',
+  /** Goruntuleme bicimi: 'shared' (akilli/bolunmus) veya 'pip' (kose penceresi). */
+  view: 'shared',
 
   // kovalamaca
   levelHasChase: false, levelChaseZ: 0, levelExitZ: 0, kulgeActive: false,

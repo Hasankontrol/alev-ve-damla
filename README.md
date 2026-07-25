@@ -55,7 +55,35 @@ Kamera: fare ile sürükle, tekerlekle yakınlaş.
 
 **Oyun kumandası:** Bağlıysa otomatik algılanır (1. kumanda Alev, 2. Damla).
 **Mobil:** Dokunmatik kontroller otomatik görünür.
-**Bölünmüş ekran:** Başlangıç ekranından açılır — her oyuncu kendi kamerasıyla oynar.
+
+### Ekran düzeni (tek cihazda oynarken)
+
+Başlangıç ekranından seçilir:
+
+| Mod | Davranış |
+|---|---|
+| **Akıllı** (varsayılan) | Oyuncular uzaklaşınca ekran kendiliğinden ikiye bölünür, yan yana gelince tek görüntüde birleşir |
+| **Hep bölünmüş** | Ekran her zaman ikiye bölü — 2 kumanda ile ideal |
+| **Köşe penceresi** | Ana ekran 🔥 Alev, sağ üstteki küçük pencerede 💧 Damla |
+
+Ortak tek kamera, oyuncular ayrılınca geri çekilip ikisini de görünmez hâle
+getiriyordu; "akıllı" mod bu sorunu çözer.
+
+### Telefona kurma (Android)
+
+Oyun bir **PWA**'dır: Chrome ile açıp menüden *"Ana ekrana ekle"* dersen
+telefona uygulama gibi kurulur, tam ekran açılır ve **internetsiz de çalışır**
+(servis işçisi varlıkları önbelleğe alır).
+
+Gerçek bir `.apk` istersen [Capacitor](https://capacitorjs.com) ile paketlenebilir;
+bunun için bilgisayarda **JDK + Android Studio** kurulu olmalıdır:
+
+```bash
+npm i -D @capacitor/cli @capacitor/core @capacitor/android
+npx cap init "Alev ve Damla" com.hecin.alevdamla --web-dir=dist
+npm run build && npx cap add android && npx cap sync
+npx cap open android        # Android Studio'da Build > Build APK
+```
 
 ## Karakterini özelleştir
 

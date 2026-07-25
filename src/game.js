@@ -23,6 +23,9 @@ const up = new THREE.Vector3(0, 1, 0);
 const ray = new THREE.Raycaster();
 const _sz = new THREE.Vector2();
 
+/** Kose penceresinin ekran genisligine orani ve kenar boslugu (piksel). */
+const PIP_W = 0.26, PIP_MARGIN = 14;
+
 let dragging = false, lastX = 0, lastY = 0;
 
 // ---------- fizik sabitleri ----------
@@ -537,6 +540,15 @@ function followCam(cam, p) {
  */
 const SPLIT_ON = 17, SPLIT_OFF = 11;
 function updateSplitState() {
+  if (S.view === 'pip') {                 // kose penceresi: iki ayri kamera hep acik
+    S.split = false;
+    S.fire.cam = S.camFire;
+    S.water.cam = S.camWater;
+    el('splitLine').classList.add('hidden');
+    el('pipFrame').classList.remove('hidden');
+    return;
+  }
+  el('pipFrame').classList.add('hidden');
   if (S.splitMode === 'always') { S.split = true; }
   else {
     const sep = S.fire.g.position.distanceTo(S.water.g.position);
@@ -550,6 +562,12 @@ function updateSplitState() {
 
 function updateCamera(dt) {
   updateSplitState();
+  if (S.view === 'pip') {
+    followCam(S.camFire, S.fire); followCam(S.camWater, S.water);
+    const before = shake;
+    applyShake(S.camFire, dt); shake = before; applyShake(S.camWater, dt);
+    return;
+  }
   if (S.split) {
     followCam(S.camFire, S.fire); followCam(S.camWater, S.water);
     const before = shake;
@@ -583,6 +601,29 @@ function animateWorld(time) {
 
 // ---------- render ----------
 export function renderFrame() {
+  // Kose penceresi: ana ekran kendi karakterin, sag ustte kucuk pencerede esin.
+  // Ayni cihazda oynarken ana ekran Alev, kosedeki Damla olur; ileride cevrim ici
+  // oynanista kosedeki pencere uzaktaki esi gosterecek — render yolu ayni.
+  if (S.view === 'pip') {
+    S.renderer.getSize(_sz);
+    const W = _sz.x, H = _sz.y;
+    if (S.camFire.aspect !== W / H) { S.camFire.aspect = W / H; S.camFire.updateProjectionMatrix(); }
+    S.renderer.setScissorTest(false);
+    S.renderer.setViewport(0, 0, W, H);
+    S.renderer.render(S.scene, S.camFire);
+
+    const pw = Math.round(W * PIP_W), ph = Math.round(pw * 0.68);
+    const px = W - pw - PIP_MARGIN, py = H - ph - PIP_MARGIN;
+    if (S.camWater.aspect !== pw / ph) { S.camWater.aspect = pw / ph; S.camWater.updateProjectionMatrix(); }
+    S.renderer.setScissorTest(true);
+    S.renderer.setViewport(px, py, pw, ph);
+    S.renderer.setScissor(px, py, pw, ph);
+    S.renderer.clear(true, true, false);           // kose penceresi kendi sahnesini cizsin
+    S.renderer.render(S.scene, S.camWater);
+    S.renderer.setScissorTest(false);
+    S.renderer.setViewport(0, 0, W, H);
+    return;
+  }
   if (S.split) {
     S.renderer.getSize(_sz);
     const W = _sz.x, H = _sz.y, a = (W / 2) / H;

@@ -107,6 +107,20 @@ canvas { display: block; }
 .keys b { color: #fff; }
 
 /* --- dokunmatik kontroller (mobil) --- */
+/* Kose penceresi cercevesi — 3B goruntu WebGL viewport'unda cizilir,
+   bu yalnizca kenarlik ve etiket katmanidir. Olculer game.js'teki
+   PIP_W / PIP_MARGIN degerleriyle ayni olmalidir. */
+#pipFrame {
+  position: fixed; top: 14px; right: 14px; z-index: 4; pointer-events: none;
+  width: 26vw; height: calc(26vw * 0.68);
+  border: 2px solid #5fd8ff; border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .55), 0 6px 20px rgba(0, 0, 0, .6);
+}
+#pipFrame span {
+  position: absolute; left: 6px; bottom: 4px;
+  font-size: 11px; font-weight: 700; color: #bff0ff; text-shadow: 0 1px 3px #000;
+}
+
 #touchCtrls { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
 .tbtn {
   position: absolute; pointer-events: auto; width: 56px; height: 56px; border-radius: 12px; opacity: .85;

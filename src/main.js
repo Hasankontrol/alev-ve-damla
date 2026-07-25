@@ -45,8 +45,9 @@ function applySettingsOnce() {
   applyMode(S.fire);
   applyMode(S.water);
 
-  // Isaretliyse ekran hep bolunur; degilse oyuncular uzaklasinca otomatik bolunur.
-  S.splitMode = el('splitMode').checked ? 'always' : 'auto';
+  const mode = document.querySelector('input[name="viewMode"]:checked')?.value || 'auto';
+  S.view = mode === 'pip' ? 'pip' : 'shared';
+  S.splitMode = mode === 'always' ? 'always' : 'auto';
 
   assignPads();
   showTouch();
@@ -100,6 +101,14 @@ el('restartBtn').addEventListener('click', () => { resume(); loadLevel(S.curLeve
 el('pauseLevelsBtn').addEventListener('click', () => { resume(); showLevelMenu(); });
 
 el('againBtn').addEventListener('click', () => location.reload());
+
+// Telefona kurulabilmesi ve internetsiz acilabilmesi icin servis iscisi.
+// Yalnizca uretim derlemesinde kaydedilir; gelistirme sunucusunda HMR'i bozar.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('sw kaydedilemedi', e));
+  });
+}
 
 init();
 
