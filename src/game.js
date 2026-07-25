@@ -10,6 +10,8 @@ import { SFX, setMute, startHum, stopHum } from './audio.js';
 import { inp } from './input.js';
 import { makePlayer, updateAura } from './entities.js';
 import { LEVELS } from './levels.js';
+import { getLevelIntro, FINAL_SCENE, showCutscene, isCutsceneOpen } from './story.js';
+import { recordLevelComplete, unlockLevel, recordDeath } from './progress.js';
 
 // r152+ varsayilan renk yonetimi sahnenin tonunu degistiriyordu;
 // oyunun ayarlanmis gorunumunu korumak icin kapatiyoruz.
@@ -64,8 +66,14 @@ function clearLevel() {
   S.scene.background = new THREE.Color(0x05060a);
 }
 
-export function loadLevel(i) {
+/**
+ * @param {number} i bolum indeksi
+ * @param {{skipIntro?:boolean}} [opt] acilis sahnesinin hemen ardindan
+ *   cagrildiginda iki sahnenin ust uste binmemesi icin giris atlanir
+ */
+export function loadLevel(i, opt = {}) {
   S.curLevel = i;
+  S.levelStart = S.clock ? S.clock.getElapsedTime() : 0;   // bolum kronometresi
   clearLevel();
   const cfg = LEVELS[i]();
 
@@ -93,6 +101,12 @@ export function loadLevel(i) {
   el('levelName').textContent = cfg.name;
   banner(cfg.name);
   el('gemCount').textContent = S.gemsGot + '/' + S.gemsTotal;
+
+  const intro = opt.skipIntro ? null : getLevelIntro(i);
+  if (intro) {
+    S.paused = true;
+    showCutscene({ ...intro, onClose: () => { S.paused = false; } });
+  }
 }
 
 function respawnTo(p, pos) {
@@ -111,6 +125,7 @@ function respawn(p) {
   p.vel.set(0, 0, 0);
   p.health = 100;
   p.invuln = 1.2;
+  recordDeath();
   SFX.hurt();
 }
 
@@ -382,6 +397,8 @@ function checkComplete() {
   if (near(S.fire, S.goalFire.x, S.goalFire.z, 1.3) && near(S.water, S.goalWater.x, S.goalWater.z, 1.3)) {
     S.transitioning = true;
     SFX.win();
+    recordLevelComplete(S.curLevel, S.clock.getElapsedTime() - (S.levelStart || 0), S.gemsGot);
+    unlockLevel(Math.min(S.curLevel + 1, LEVELS.length - 1));
     if (S.curLevel < LEVELS.length - 1) {
       banner('Bölüm tamamlandı!');
       setTimeout(() => { loadLevel(S.curLevel + 1); S.transitioning = false; }, 1400);
@@ -389,7 +406,7 @@ function checkComplete() {
       S.won = true;
       stopHum();
       el('gemFinal').textContent = S.gemsAll;
-      el('winScreen').classList.remove('hidden');
+      showCutscene({ ...FINAL_SCENE, onClose: () => el('winScreen').classList.remove('hidden') });
     }
   }
 }
@@ -517,6 +534,7 @@ function tick() {
 // ---------- sistem tuslari (P duraklat / R yeniden / M ses) ----------
 addEventListener('keydown', (e) => {
   if (!S.started || S.won) return;
+  if (isCutsceneOpen()) return;          // ara sahne acikken sistem tuslari calismasin
   if (e.code === 'KeyP') {
     S.paused = !S.paused;
     el('pauseScreen').classList.toggle('hidden', !S.paused);

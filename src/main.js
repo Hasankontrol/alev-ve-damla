@@ -4,6 +4,17 @@ import { resumeAudio } from './audio.js';
 import { bindFire, bindWater, buildCtrls, buildTouch, showTouch, assignPads, keys } from './input.js';
 import { applyMode, loadFace, loadModel } from './entities.js';
 import { init, frame, renderFrame, loadLevel } from './game.js';
+import { showCutscene, INTRO_SCENE } from './story.js';
+import { buildLevelMenu, showLevelMenu, hideLevelMenu } from './menu.js';
+
+// TODO: bolum adlari levels.js'e tasinacak (tek kaynak) — su an orasi ajanda.
+const LEVEL_NAMES = [
+  'Bölüm 1 · Uyanış Odası',
+  'Bölüm 2 · Buhar Fabrikası',
+  'Bölüm 3 · Terk Edilmiş Kanal',
+  'Bölüm 4 · Ayrılık Labirenti',
+  'Bölüm 5 · Külge’den Kaçış',
+];
 
 const el = (id) => document.getElementById(id);
 
@@ -35,7 +46,9 @@ el('modelWater').addEventListener('change', (e) => {
 });
 
 // --- oyunu baslat ---
-el('startBtn').addEventListener('click', () => {
+/** Ayarlar yalnizca ilk baslangicta uygulanir; menuden bolum secilince tekrarlanmaz. */
+function applySettingsOnce() {
+  if (S.started) return;
   S.useStandee = el('fotoFigur').checked;
   applyMode(S.fire);
   applyMode(S.water);
@@ -49,16 +62,44 @@ el('startBtn').addEventListener('click', () => {
 
   assignPads();
   showTouch();
+}
 
+function enterGameUI() {
   el('startScreen').classList.add('hidden');
   el('hud').classList.remove('hidden');
   el('topbar').classList.remove('hidden');
   el('gems').classList.remove('hidden');
-
   resumeAudio();               // ses ancak kullanici etkilesiminden sonra baslatilabilir
-  loadLevel(0);
+}
+
+/** Menuden secilen bolume dogrudan atlar (acilis sahnesi gosterilmez). */
+function startAtLevel(i) {
+  applySettingsOnce();
+  enterGameUI();
   S.started = true;
+  loadLevel(i);
+}
+
+el('startBtn').addEventListener('click', () => {
+  applySettingsOnce();
+  enterGameUI();
+  S.started = true;
+  // Acilis sahnesi oynasin; hemen ardindan gelen bolum girisi iki kez
+  // ust uste binmesin diye ilk bolumun girisi atlanir.
+  showCutscene({
+    ...INTRO_SCENE,
+    onOpen: () => { S.paused = true; },
+    onClose: () => { S.paused = false; loadLevel(0, { skipIntro: true }); },
+  });
 });
+
+// --- bolum secme menusu ---
+buildLevelMenu({
+  levels: LEVEL_NAMES.map((name) => ({ name, gems: 3 })),
+  onSelect: (i) => { hideLevelMenu(); startAtLevel(i); },
+  onClose: () => hideLevelMenu(),
+});
+el('levelsBtn').addEventListener('click', showLevelMenu);
 
 el('againBtn').addEventListener('click', () => location.reload());
 

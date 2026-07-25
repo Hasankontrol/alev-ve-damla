@@ -1,0 +1,64 @@
+/* Ara sahne katmani. Oyunun overlay'leri z-index 10, HUD 5 — bu 20 ile hepsinin ustunde. */
+
+.cutscene {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 20px;
+  background: rgba(5, 6, 10, .92);
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+  animation: cs-fade .4s ease both;
+}
+
+.cs-box {
+  width: 100%; max-width: 600px; text-align: center;
+  animation: cs-rise .5s cubic-bezier(.2, .7, .3, 1) both;
+}
+
+.cs-title {
+  font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+  color: #8a90a4; margin-bottom: 22px;
+}
+
+.cs-line {
+  font-size: 18px; line-height: 1.75; color: #d8dbe6;
+  margin: 0 0 16px;
+  min-height: 1.75em;                 /* yazarken satir zipmasin */
+  text-shadow: 0 1px 6px #000;
+}
+.cs-line:last-child { margin-bottom: 0; }
+.cs-line.alev { color: #ff9d3f; }     /* 🔥 Alev replikleri */
+.cs-line.damla { color: #5fd8ff; }    /* 💧 Damla replikleri */
+
+.cs-skip {
+  position: fixed; right: 20px; bottom: 20px;
+  padding: 8px 16px; border-radius: 20px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .04);
+  color: #6d7284; font: inherit; font-size: 13px;
+  opacity: .55; transition: opacity .2s, color .2s, border-color .2s;
+}
+.cs-skip:hover, .cs-skip:focus-visible {
+  opacity: 1; color: #fff; border-color: rgba(255, 255, 255, .4);
+}
+
+@keyframes cs-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes cs-rise {
+  from { opacity: 0; transform: translateY(14px) }
+  to { opacity: 1; transform: none }
+}
+
+/* --- mobil --- */
+@media (max-width: 640px) {
+  .cutscene { padding: 24px 16px; }
+  .cs-title { font-size: 11px; letter-spacing: 2px; margin-bottom: 16px; }
+  .cs-line { font-size: 16px; line-height: 1.7; margin-bottom: 13px; }
+  .cs-skip {
+    right: 12px; padding: 10px 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cutscene, .cs-box { animation: none }
+}
