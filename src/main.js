@@ -1,0 +1,89 @@
+import './style.css';
+import { S, solids } from './state.js';
+import { resumeAudio } from './audio.js';
+import { bindFire, bindWater, buildCtrls, buildTouch, showTouch, assignPads, keys } from './input.js';
+import { applyMode, loadFace, loadModel } from './entities.js';
+import { init, frame, renderFrame, loadLevel } from './game.js';
+
+const el = (id) => document.getElementById(id);
+
+// --- baslangic ekrani: tus atama + dokunmatik kontroller ---
+buildCtrls('ctrlFire', bindFire);
+buildCtrls('ctrlWater', bindWater);
+buildTouch();
+
+// --- fotograf ve .glb model yukleme ---
+el('fileFire').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  loadFace(S.fire, f);
+  el('thumbFire').style.backgroundImage = `url(${URL.createObjectURL(f)})`;
+});
+el('fileWater').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  loadFace(S.water, f);
+  el('thumbWater').style.backgroundImage = `url(${URL.createObjectURL(f)})`;
+});
+el('modelFire').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) loadModel(S.fire, f);
+});
+el('modelWater').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) loadModel(S.water, f);
+});
+
+// --- oyunu baslat ---
+el('startBtn').addEventListener('click', () => {
+  S.useStandee = el('fotoFigur').checked;
+  applyMode(S.fire);
+  applyMode(S.water);
+
+  S.split = el('splitMode').checked;
+  if (S.split) {
+    S.fire.cam = S.camFire;
+    S.water.cam = S.camWater;
+    el('splitLine').classList.remove('hidden');
+  }
+
+  assignPads();
+  showTouch();
+
+  el('startScreen').classList.add('hidden');
+  el('hud').classList.remove('hidden');
+  el('topbar').classList.remove('hidden');
+  el('gems').classList.remove('hidden');
+
+  resumeAudio();               // ses ancak kullanici etkilesiminden sonra baslatilabilir
+  loadLevel(0);
+  S.started = true;
+});
+
+el('againBtn').addEventListener('click', () => location.reload());
+
+init();
+
+/**
+ * Hata ayiklama / otomatik test kancasi.
+ * `drive(n)` sekme arka plandayken requestAnimationFrame durdugu icin
+ * kareleri elle ilerletmeye yarar.
+ */
+window.__g = {
+  get S() { return S; },
+  get fire() { return S.fire; },
+  get water() { return S.water; },
+  get camera() { return S.camera; },
+  get scene() { return S.scene; },
+  get started() { return S.started; },
+  get level() { return S.curLevel; },
+  get solids() { return solids; },
+  get binds() { return { fire: { ...bindFire }, water: { ...bindWater } }; },
+  get valveActive() { return S.valve && S.valve.active; },
+  get keys() { return { ...keys }; },
+  loadLevel,
+  setYaw(v) { S.camYaw = v; },
+  frame,
+  render: renderFrame,
+  drive(n) { for (let i = 0; i < n; i++) frame(0.016, i * 0.016); renderFrame(); },
+};
