@@ -5,7 +5,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 
 import { S, SHARED, chaseCP, resetLevelLists, solids, bounds, boundMeshes, zones,
          torches, plates, animated, levelMeshes, gems, movers, hazards, fires, mixers } from './state.js';
-import { TEX, buildTextures } from './textures.js';
+import { TEX, buildTextures, sparkTex } from './textures.js';
 import { SFX, setMute, startHum, stopHum } from './audio.js';
 import { inp } from './input.js';
 import { makePlayer, updateAura } from './entities.js';
@@ -40,6 +40,50 @@ function flash() {
   const f = el('chaseFlash');
   f.style.opacity = 0.55;
   setTimeout(() => { f.style.opacity = 0; }, 120);
+}
+
+/**
+ * Havada suzulen toz zerreleri. Oyuncularin etrafinda dolasan bir kutu icinde
+ * tutulur (kutudan cikan zerre karsi tarafa sarar), boylece tek ve kucuk bir
+ * parcacik sistemi tum haritayi kaplamis gibi gorunur. Rengi bolum atmosferine
+ * gore ayarlanir.
+ */
+const DUST_N = 140, DUST_BOX = 46;
+let dust = null;
+function makeDust() {
+  const pos = new Float32Array(DUST_N * 3);
+  for (let i = 0; i < DUST_N; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * DUST_BOX;
+    pos[i * 3 + 1] = Math.random() * 12;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * DUST_BOX;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    size: 0.13, map: sparkTex(), color: 0x9fb4d0, transparent: true,
+    opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  dust = new THREE.Points(geo, mat);
+  dust.frustumCulled = false;
+  S.scene.add(dust);
+}
+function updateDust(dt, t) {
+  if (!dust) return;
+  const mid = S.split ? S.fire.g.position : null;
+  const cx = mid ? mid.x : (S.fire.g.position.x + S.water.g.position.x) / 2;
+  const cz = mid ? mid.z : (S.fire.g.position.z + S.water.g.position.z) / 2;
+  const p = dust.geometry.attributes.position.array;
+  const h = DUST_BOX / 2;
+  for (let i = 0; i < DUST_N; i++) {
+    const j = i * 3;
+    p[j] += Math.sin(t * 0.3 + i) * dt * 0.25;      // yavas yatay suruklenme
+    p[j + 1] += dt * 0.22;                           // hafifce yukselir
+    if (p[j + 1] > 12) p[j + 1] = 0;
+    // oyunculardan uzaklasan zerre karsi tarafa sarar
+    if (p[j] - cx > h) p[j] -= DUST_BOX; else if (p[j] - cx < -h) p[j] += DUST_BOX;
+    if (p[j + 2] - cz > h) p[j + 2] -= DUST_BOX; else if (p[j + 2] - cz < -h) p[j + 2] += DUST_BOX;
+  }
+  dust.geometry.attributes.position.needsUpdate = true;
 }
 
 // Kamera sarsintisi — darbe hissi. Miktar her karede sonuyor.
@@ -108,6 +152,7 @@ export function loadLevel(i, opt = {}) {
     S.scene.background.setHex(a.fog);
     if (S.hemi) S.hemi.color.setHex(a.hemi);
     S.dirLight.color.setHex(a.dir);
+    if (dust) dust.material.color.setHex(a.hemi);   // toz da bolumun tonunu alsin
   }
 
   el('levelName').textContent = cfg.name;
@@ -551,6 +596,7 @@ export function frame(dt, t) {
   checkComplete();
   animateWorld(t);
   updateFires(dt);
+  updateDust(dt, t);
   updateGems(t);
   updateAura(S.fire.aura, S.fire.g.position.x, S.fire.g.position.z, dt);
   updateAura(S.water.aura, S.water.g.position.x, S.water.g.position.z, dt);
@@ -645,6 +691,7 @@ export function init() {
 
   S.fire = makePlayer(0xff5a10, '#ff9d3f', 0xff3a00, 'fire');
   S.water = makePlayer(0x2aa8ff, '#5fd8ff', 0x0a5aff, 'water');
+  makeDust();
 
   // ?nobloom ile kapatilabilir (zayif donanim icin)
   if (!location.search.includes('nobloom')) {

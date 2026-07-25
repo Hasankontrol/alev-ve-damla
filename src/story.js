@@ -28,7 +28,7 @@ export const INTRO_SCENE = {
   ],
 };
 
-/** Bolum giris sahneleri — dizi sirasi levels.js icindeki LEVELS sirasidir (5 bolum). */
+/** Bolum giris sahneleri — dizi sirasi levels.js icindeki LEVELS sirasidir (8 bolum). */
 const LEVEL_INTROS = [
   { // 0 — Bölüm 1 · Uyanış Odası
     title: 'Bölüm 1 · Uyanış Odası',
@@ -68,6 +68,33 @@ const LEVEL_INTROS = [
       'Duman koridoru doldurdu. Kapüşonun altında yüz yok, sadece boşluk var.',
       'Külge yıllardır burada yalnız — ve yalnızlığını paylaşacak birini arıyor.',
       '🔥 Alev: "Koş. Arkana bakma, ben arkandayım."',
+    ],
+  },
+  { // 5 — Bölüm 6 · Asılı Basamaklar
+    title: 'Bölüm 6 · Asılı Basamaklar',
+    lines: [
+      'Kaçtılar, ama yukarı değil: tesis onları daha derine indirdi.',
+      'Burada zemin yok — sadece boşlukta asılı duran basamaklar ve altlarında yanlış renkte bir göl.',
+      '💧 Damla: "Senin geçtiğin yerden ben geçemem."',
+      '🔥 Alev: "O yüzden sırayla geçeceğiz. Sen düşersen ben durur beklerim."',
+    ],
+  },
+  { // 6 — Bölüm 7 · Yankı Mahzeni
+    title: 'Bölüm 7 · Yankı Mahzeni',
+    lines: [
+      'Mahzen sesi geri veriyor. İki ayrı koridor, tek bir yankı.',
+      'Kapılar sırayla açılıyor: biri çalışırken öteki beklemek zorunda.',
+      '🔥 Alev: "Beni göremeyeceksin. Ama kapı açılınca bil ki oradayım."',
+      '💧 Damla: "Bekleyeceğim. Bekleyebilmek de bir şeydir."',
+    ],
+  },
+  { // 7 — Bölüm 8 · Külge'nin Yükselişi
+    title: 'Bölüm 8 · Külge’nin Yükselişi',
+    lines: [
+      'Duman bu kez tavandan iniyor. Külge artık saklanmıyor — yükseliyor.',
+      'Çıkışa giden yol uzun ve her kapı bir bedel istiyor: meşale, valf, plaka.',
+      '💧 Damla: "Bu sefer durmadan çözeceğiz, değil mi?"',
+      '🔥 Alev: "Durmadan. Sen kapıyı aç, ben ateşi yakarım — birlikte çıkacağız."',
     ],
   },
 ];

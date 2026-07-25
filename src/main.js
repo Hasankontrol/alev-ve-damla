@@ -1,20 +1,12 @@
 import './style.css';
-import { S, solids } from './state.js';
+import { S, solids, zones, gems, plates, torches } from './state.js';
 import { resumeAudio } from './audio.js';
 import { bindFire, bindWater, buildCtrls, buildTouch, showTouch, assignPads, keys } from './input.js';
 import { applyMode, loadFace, loadModel } from './entities.js';
 import { init, frame, renderFrame, loadLevel } from './game.js';
 import { showCutscene, INTRO_SCENE } from './story.js';
 import { buildLevelMenu, showLevelMenu, hideLevelMenu } from './menu.js';
-
-// TODO: bolum adlari levels.js'e tasinacak (tek kaynak) — su an orasi ajanda.
-const LEVEL_NAMES = [
-  'Bölüm 1 · Uyanış Odası',
-  'Bölüm 2 · Buhar Fabrikası',
-  'Bölüm 3 · Terk Edilmiş Kanal',
-  'Bölüm 4 · Ayrılık Labirenti',
-  'Bölüm 5 · Külge’den Kaçış',
-];
+import { LEVEL_NAMES } from './levels.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -120,6 +112,10 @@ window.__g = {
   get started() { return S.started; },
   get level() { return S.curLevel; },
   get solids() { return solids; },
+  get zones() { return zones; },
+  get gems() { return gems; },
+  get plates() { return plates; },
+  get torches() { return torches; },
   get binds() { return { fire: { ...bindFire }, water: { ...bindWater } }; },
   get valveActive() { return S.valve && S.valve.active; },
   get keys() { return { ...keys }; },
