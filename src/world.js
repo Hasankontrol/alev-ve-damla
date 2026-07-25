@@ -1,7 +1,30 @@
 import * as THREE from 'three';
-import { S, solids, bounds, boundMeshes, zones, torches, plates,
+import { S, share, solids, bounds, boundMeshes, zones, torches, plates,
          animated, levelMeshes, gems, movers, hazards, fires } from './state.js';
 import { TEX, fireTex, sparkTex } from './textures.js';
+
+/**
+ * Paylasilan kaynaklar.
+ *
+ * Bir bolumde 20-30 duvar var; her biri icin ayri geometri ve materyal uretmek
+ * hem bellegi hem cizim cagrisi sayisini gereksiz buyutuyordu. Bunun yerine tek
+ * bir birim kup kullanip mesh'i olcekliyoruz ve materyalleri dokuya gore
+ * onbellege aliyoruz. Bu kaynaklar `share()` ile isaretlenir; clearLevel onlari
+ * dispose etmez.
+ */
+const UNIT_BOX = share(new THREE.BoxGeometry(1, 1, 1));
+const UNIT_PLANE = share(new THREE.PlaneGeometry(1, 1));
+
+const matCache = new Map();
+/** Ayni dokuyu kullanan tum yuzeyler tek materyali paylasir. */
+function surfaceMat(tex) {
+  let m = matCache.get(tex);
+  if (!m) {
+    m = share(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+    matCache.set(tex, m);
+  }
+  return m;
+}
 
 /**
  * Bolum yapi taslari — SADECE insa fonksiyonlari.
@@ -11,8 +34,8 @@ import { TEX, fireTex, sparkTex } from './textures.js';
 
 /** Carpisan kutu. `stand` = ustune cikilabilir, `cast` = golge dusurur. */
 export function solidBox(x, z, w, d, h, tex, stand, cast) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+  const m = new THREE.Mesh(UNIT_BOX, surfaceMat(tex));
+  m.scale.set(w, h, d);
   m.position.set(x, h / 2, z);
   m.receiveShadow = true;
   if (cast) m.castShadow = true;
@@ -41,8 +64,8 @@ export function door(x, z, w) {
 }
 
 export function boundWall(x, z, w, d) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, 3.4, d),
-    new THREE.MeshStandardMaterial({ map: TEX.wall, roughness: 0.9 }));
+  const m = new THREE.Mesh(UNIT_BOX, surfaceMat(TEX.wall));
+  m.scale.set(w, 3.4, d);
   m.position.set(x, 1.7, z);
   m.receiveShadow = true;
   S.scene.add(m);
@@ -63,18 +86,28 @@ export function box4(x1, x2, z1, z2, g = {}) {
 }
 export const corridor = (x1, x2, z1, z2) => { vWall(x1, z1, z2); vWall(x2, z1, z2); };
 
+const poolMats = {};
+function poolMat(isLava) {
+  const k = isLava ? 'lava' : 'water';
+  if (!poolMats[k]) {
+    poolMats[k] = share(new THREE.MeshStandardMaterial({
+      map: isLava ? TEX.lava : TEX.water,
+      color: isLava ? 0xff4a12 : 0x1e78ff,
+      emissive: isLava ? 0xff2a00 : 0x0a3aff,
+      emissiveIntensity: 0.85, roughness: 0.25,
+      transparent: !isLava, opacity: isLava ? 1 : 0.9,
+    }));
+  }
+  return poolMats[k];
+}
+
 /** Lav / su havuzu — yanlis elemente giren oyuncu icin olumcul bariyerdir. */
 export function pool(x, z, w, d, type) {
+  // Geometri havuza ozel (koseleri kare basi dalgalandiriliyor), materyal ise
+  // tipe gore paylasilir.
   const geo = new THREE.PlaneGeometry(w, d, 14, 14);
   const isLava = type === 'lava';
-  const mat = new THREE.MeshStandardMaterial({
-    map: isLava ? TEX.lava : TEX.water,
-    color: isLava ? 0xff4a12 : 0x1e78ff,
-    emissive: isLava ? 0xff2a00 : 0x0a3aff,
-    emissiveIntensity: 0.85, roughness: 0.25,
-    transparent: !isLava, opacity: isLava ? 1 : 0.9,
-  });
-  const m = new THREE.Mesh(geo, mat);
+  const m = new THREE.Mesh(geo, poolMat(isLava));
   m.rotation.x = -Math.PI / 2;
   m.position.set(x, 0.06, z);
   m.receiveShadow = true;
@@ -85,6 +118,17 @@ export function pool(x, z, w, d, type) {
   if (isLava) makeFire(x, z, w, d);
 }
 
+let FLAME_MAT;
+function flameMat() {
+  if (!FLAME_MAT) {
+    FLAME_MAT = share(new THREE.PointsMaterial({
+      size: 1.15, map: fireTex(), vertexColors: true, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.95,
+    }));
+  }
+  return FLAME_MAT;
+}
+
 /** Lav yuzeyinden yukselen alev parcaciklari (renk tabanda sari, tepede kirmizi). */
 export function makeFire(x, z, w, d) {
   const N = Math.min(200, Math.max(24, Math.round(w * d * 1.3)));
@@ -93,11 +137,7 @@ export function makeFire(x, z, w, d) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const mat = new THREE.PointsMaterial({
-    size: 1.15, map: fireTex(), vertexColors: true, transparent: true,
-    blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.95,
-  });
-  const pts = new THREE.Points(geo, mat);
+  const pts = new THREE.Points(geo, flameMat());
   pts.frustumCulled = false;
   S.scene.add(pts);
   levelMeshes.push(pts);
@@ -111,8 +151,8 @@ export function makeFire(x, z, w, d) {
 }
 
 export function floorPatch(x, z, w, d) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d),
-    new THREE.MeshStandardMaterial({ map: TEX.stone, roughness: 0.95 }));
+  const m = new THREE.Mesh(UNIT_PLANE, surfaceMat(TEX.stone));
+  m.scale.set(w, d, 1);
   m.rotation.x = -Math.PI / 2;
   m.position.set(x, 0, z);
   m.receiveShadow = true;

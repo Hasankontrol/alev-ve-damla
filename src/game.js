@@ -3,7 +3,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
-import { S, chaseCP, resetLevelLists, solids, bounds, boundMeshes, zones,
+import { S, SHARED, chaseCP, resetLevelLists, solids, bounds, boundMeshes, zones,
          torches, plates, animated, levelMeshes, gems, movers, hazards, fires, mixers } from './state.js';
 import { TEX, buildTextures } from './textures.js';
 import { SFX, setMute, startHum, stopHum } from './audio.js';
@@ -41,8 +41,21 @@ function flash() {
 }
 
 // ---------- bolum yukleme ----------
+/**
+ * Sahneden cikarilan nesnenin GPU kaynaklarini serbest birakir.
+ * Paylasilan geometri/materyaller (SHARED) atlanir — onlar sonraki bolumde
+ * yeniden kullanilir. Dokular da atlanir; hepsi kalicidir.
+ */
+function disposeObject(root) {
+  root.traverse((o) => {
+    if (o.geometry && !SHARED.has(o.geometry)) o.geometry.dispose();
+    const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
+    for (const m of mats) if (!SHARED.has(m)) m.dispose();
+  });
+}
+
 function clearLevel() {
-  for (const m of levelMeshes) S.scene.remove(m);
+  for (const m of levelMeshes) { S.scene.remove(m); disposeObject(m); }
   resetLevelLists();
   S.gemsGot = 0; S.gemsTotal = 0;
   S.doorTorch = S.doorValve = S.gateDual = S.valve = S.kulge = null;
@@ -420,6 +433,11 @@ function updateCamera() {
 }
 
 function animateWorld(time) {
+  // Akis hissi: dokuyu kaydir. Materyaller paylasildigi icin bu tek islem
+  // sahnedeki TUM lav/su yuzeylerini birden hareketlendirir.
+  TEX.lava.offset.set(time * 0.014, time * 0.030);
+  TEX.water.offset.set(Math.sin(time * 0.09) * 0.06, time * 0.045);
+
   for (const a of animated) {
     const pos = a.geo.attributes.position.array;
     for (let i = 0; i < pos.length; i += 3) {

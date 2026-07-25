@@ -57,6 +57,19 @@ export const hazards = [];      // testere / balta
 export const fires = [];        // lav ustundeki alev partikulleri
 export const mixers = [];       // .glb animasyonlari
 
+/**
+ * Bolumler arasinda YENIDEN KULLANILAN kaynaklar (paylasilan geometri ve
+ * materyaller). clearLevel bunlari dispose ETMEZ — aksi halde bir sonraki
+ * bolumde bozuk cizim olusur.
+ */
+export const SHARED = new Set();
+
+/** Paylasilan kaynagi kaydeder ve geri dondurur (zincirlemeye uygun). */
+export function share(resource) {
+  SHARED.add(resource);
+  return resource;
+}
+
 /** Bolum degisiminde tum icerik listelerini bosaltir. */
 export function resetLevelLists() {
   for (const list of [solids, zones, torches, plates, animated,
