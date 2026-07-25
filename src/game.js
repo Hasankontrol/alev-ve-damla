@@ -9,7 +9,7 @@ import { TEX, buildTextures, sparkTex } from './textures.js';
 import { SFX, setMute, startHum, stopHum } from './audio.js';
 import { inp } from './input.js';
 import { makePlayer, updateAura } from './entities.js';
-import { LEVELS } from './levels.js';
+import { LEVELS, LEVEL_NAMES } from './levels.js';
 import { getLevelIntro, FINAL_SCENE, showCutscene, isCutsceneOpen } from './story.js';
 import { recordLevelComplete, unlockLevel, recordDeath } from './progress.js';
 
@@ -619,9 +619,33 @@ export function frame(dt, t) {
   el('timeNow').textContent = `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
 }
 
+/**
+ * Uyarlanabilir kalite: kare hizi dususe kalite kademe kademe indirilir.
+ * Yalnizca asagi yonlu — surekli acilip kapanip titremesin diye geri yukseltilmez.
+ * Kademeler: 1) parlama (bloom) kapanir  2) piksel orani 1'e iner
+ *            3) golgeler kapanir
+ */
+let qStep = 0, fpsAcc = 0, fpsFrames = 0, qCooldown = 3;
+function adaptQuality(dt) {
+  if (qStep >= 3) return;
+  qCooldown -= dt;
+  if (qCooldown > 0) return;                 // acilisin ilk saniyeleri olculmez
+  fpsAcc += dt; fpsFrames++;
+  if (fpsAcc < 2) return;                    // 2 saniyelik pencere
+  const fps = fpsFrames / fpsAcc;
+  fpsAcc = 0; fpsFrames = 0;
+  if (fps >= 45) return;
+  qStep++;
+  if (qStep === 1 && S.composer) { S.composer = null; }
+  else if (qStep === 2) { S.renderer.setPixelRatio(1); }
+  else if (qStep === 3) { S.renderer.shadowMap.enabled = false; S.scene.traverse((o) => { if (o.isMesh) o.castShadow = false; }); }
+  console.info(`[kalite] FPS ${fps.toFixed(0)} — kademe ${qStep} uygulandi`);
+}
+
 function tick() {
   requestAnimationFrame(tick);
   const dt = Math.min(0.05, S.clock.getDelta());
+  if (S.started && !S.paused) adaptQuality(dt);
   frame(dt, S.clock.elapsedTime);
   renderFrame();
 }
@@ -632,6 +656,7 @@ addEventListener('keydown', (e) => {
   if (isCutsceneOpen()) return;          // ara sahne acikken sistem tuslari calismasin
   if (e.code === 'KeyP') {
     S.paused = !S.paused;
+    if (S.paused) el('pauseLevel').textContent = LEVEL_NAMES[S.curLevel] || '';
     el('pauseScreen').classList.toggle('hidden', !S.paused);
   }
   if (e.code === 'KeyR') {

@@ -27,7 +27,18 @@ Three.js + Vite ile yazılmıştır, tarayıcıda çalışır, kurulum gerektirm
 2. **Buhar Fabrikası** — valf, dönen testere, platform köprü, basınç plakaları
 3. **Terk Edilmiş Kanal** — ayrı element koridorları, testere ve balta
 4. **Ayrılık Labirenti** — oyuncular ayrılır, herkes kendi bulmacasını çözer
-5. **Külge'den Kaçış** — hareketli platform, balta ve uzun kovalamaca finali
+5. **Külge'den Kaçış** — hareketli platform, balta ve ilk kovalamaca
+6. **Asılı Basamaklar** — baştan başa uzanan havuzları platform zincirleriyle geçme
+7. **Yankı Mahzeni** — zincirleme kapılar; biri çalışırken diğeri bekler
+8. **Külge'nin Yükselişi** — üç kapı mekaniği de kovalamaca baskısı altında
+
+### Diğer özellikler
+
+- **Hikâye** — açılış, her bölüm için giriş ve final ara sahneleri (atlanabilir).
+- **Bölüm seçme** — açtığın bölümlere dönebilirsin; en iyi süre ve elmas kaydedilir.
+- **Güvenli nokta** — ölünce bölüm başına değil, en son güvenle durduğun yere dönersin.
+- **Kronometre** — bölüm süresi ekranda; en iyi süreler `localStorage`'da tutulur.
+- **Uyarlanabilir kalite** — kare hızı düşerse parlama/gölge kademeli olarak kapanır.
 
 ## Kontroller
 
@@ -39,7 +50,7 @@ Tuşlar **başlangıç ekranından değiştirilebilir**. Varsayılanlar:
 | Zıpla | `Boşluk` | `Sağ Shift` |
 | Etkileşim | `E` | `Sağ Ctrl` |
 
-Sabit tuşlar: `P` duraklat · `R` bölümü yeniden başlat · `M` ses aç/kapa
+Sabit tuşlar: `P` duraklat (menü açılır) · `R` bölümü yeniden başlat · `M` ses aç/kapa
 Kamera: fare ile sürükle, tekerlekle yakınlaş.
 
 **Oyun kumandası:** Bağlıysa otomatik algılanır (1. kumanda Alev, 2. Damla).
@@ -72,14 +83,21 @@ npm run preview  # derlenmiş sürümü yerelde dene
 src/
   main.js      Başlangıç ekranı bağlantıları ve önyükleme
   game.js      Fizik, kamera, kovalamaca, ana döngü, bölüm yükleme
-  levels.js    Beş bölümün tasarımı
-  world.js     Bölüm yapı taşları (duvar, havuz, kapı, tehlike…)
+  levels.js    Sekiz bölümün tasarımı + bölüm adları
+  world.js     Bölüm yapı taşları (duvar, havuz, kapı, tehlike…) — yalnızca inşa
   entities.js  Oyuncu, Külge, parçacık auraları, .glb yükleyici
   input.js     Klavye + oyun kumandası + dokunmatik girdi, tuş atama
   audio.js     Prosedürel ses (dosya yok, hepsi WebAudio ile üretilir)
   textures.js  Canvas ile üretilen dokular (tuğla, lav, su, alev)
+  story.js     Ara sahne motoru ve hikâye metinleri
+  menu.js      Bölüm seçme ekranı
+  progress.js  localStorage ile ilerleme, en iyi süreler, ölüm sayacı
   state.js     Paylaşılan durum — döngüsel bağımlılığı önler
 ```
+
+Modüller **döngüsel bağımlılık olmayacak** şekilde ayrılmıştır: `state.js` hiçbir
+şeye bağımlı değildir, `world.js` yalnızca *inşa* fonksiyonlarını tutar, kare başı
+güncellemeler (`updateFires`, `updateHazards`, …) `game.js`'tedir.
 
 ### Yayınlama (GitHub Pages)
 

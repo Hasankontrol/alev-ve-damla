@@ -94,6 +94,15 @@ buildLevelMenu({
 });
 el('levelsBtn').addEventListener('click', showLevelMenu);
 
+// --- duraklama ekrani dugmeleri ---
+function resume() {
+  S.paused = false;
+  el('pauseScreen').classList.add('hidden');
+}
+el('resumeBtn').addEventListener('click', resume);
+el('restartBtn').addEventListener('click', () => { resume(); loadLevel(S.curLevel, { skipIntro: true }); });
+el('pauseLevelsBtn').addEventListener('click', () => { resume(); showLevelMenu(); });
+
 el('againBtn').addEventListener('click', () => location.reload());
 
 init();
