@@ -16,15 +16,31 @@ const UNIT_BOX = share(new THREE.BoxGeometry(1, 1, 1));
 const UNIT_PLANE = share(new THREE.PlaneGeometry(1, 1));
 
 const matCache = new Map();
-/** Ayni dokuyu kullanan tum yuzeyler tek materyali paylasir. */
+/**
+ * Ayni dokuyu kullanan tum yuzeyler tek materyali paylasir.
+ *
+ * MeshLambertMaterial kullaniyoruz: sahnedeki her isik her materyalin
+ * govde gölgelendiricisine maliyet ekler ve MeshStandardMaterial (PBR) bunu
+ * cok daha pahali yapar. Duvarlar mat oldugu icin gorunum neredeyse ayni,
+ * fakat piksel maliyeti belirgin dusuk.
+ */
 function surfaceMat(tex) {
   let m = matCache.get(tex);
   if (!m) {
-    m = share(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+    m = share(new THREE.MeshLambertMaterial({ map: tex }));
     matCache.set(tex, m);
   }
   return m;
 }
+
+/**
+ * Isik butcesi. Her dinamik isik TUM materyallerin gölgelendiricisini
+ * pahalilastirdigi icin bolum basina lav isigi sinirlanir; kalan havuzlar
+ * kendi emissive parlaklikari ve alev parcaciklariyla zaten aydinlik gorunur.
+ */
+const MAX_LAVA_LIGHTS = 2;
+let lavaLights = 0;
+export function resetLightBudget() { lavaLights = 0; }
 
 /**
  * Bolum yapi taslari — SADECE insa fonksiyonlari.
@@ -51,10 +67,13 @@ export function solidBox(x, z, w, d, h, tex, stand, cast) {
 
 // Duvarlar 0.5 kalinliginda ama uzunluga +0.5 eklenir: kosede ust uste binerler,
 // boylece kosegen bosluktan sizmak mumkun olmaz.
+// Duvarlar golge DUSURMEZ (son parametre false): bir bolumde 30+ duvar var,
+// hepsi golge haritasina cizilince ikinci bir tam sahne gecisi maliyeti cikiyordu.
+// Sahne zaten koyu; gorsel fark ihmal edilebilir, kazanc buyuk.
 export const hWall = (z, x1, x2, H) =>
-  solidBox((x1 + x2) / 2, z, Math.abs(x2 - x1) + 0.5, 0.5, H || 2.8, TEX.wall, true, true);
+  solidBox((x1 + x2) / 2, z, Math.abs(x2 - x1) + 0.5, 0.5, H || 2.8, TEX.wall, true, false);
 export const vWall = (x, z1, z2, H) =>
-  solidBox(x, (z1 + z2) / 2, 0.5, Math.abs(z2 - z1) + 0.5, H || 2.8, TEX.wall, true, true);
+  solidBox(x, (z1 + z2) / 2, 0.5, Math.abs(z2 - z1) + 0.5, H || 2.8, TEX.wall, true, false);
 export const platform = (x, z, w, d, h) => solidBox(x, z, w, d, h, TEX.plat, true, true);
 
 export function door(x, z, w) {
@@ -90,11 +109,11 @@ const poolMats = {};
 function poolMat(isLava) {
   const k = isLava ? 'lava' : 'water';
   if (!poolMats[k]) {
-    poolMats[k] = share(new THREE.MeshStandardMaterial({
+    poolMats[k] = share(new THREE.MeshLambertMaterial({
       map: isLava ? TEX.lava : TEX.water,
       color: isLava ? 0xff4a12 : 0x1e78ff,
       emissive: isLava ? 0xff2a00 : 0x0a3aff,
-      emissiveIntensity: 0.85, roughness: 0.25,
+      emissiveIntensity: 0.85,
       transparent: !isLava, opacity: isLava ? 1 : 0.9,
     }));
   }
@@ -142,10 +161,13 @@ export function makeFire(x, z, w, d) {
   S.scene.add(pts);
   levelMeshes.push(pts);
 
-  const light = new THREE.PointLight(0xff5a10, 0.9, Math.max(w, d) * 1.4);
-  light.position.set(x, 1.2, z);
-  S.scene.add(light);
-  levelMeshes.push(light);
+  if (lavaLights < MAX_LAVA_LIGHTS) {          // bkz. isik butcesi
+    lavaLights++;
+    const light = new THREE.PointLight(0xff5a10, 1.1, Math.max(w, d) * 1.6);
+    light.position.set(x, 1.2, z);
+    S.scene.add(light);
+    levelMeshes.push(light);
+  }
 
   fires.push({ geo, data, x, z, w, d, N });
 }
@@ -165,9 +187,9 @@ export function makeTorch(x, z, y) {
   const g = new THREE.Group();
   g.position.set(x, y || 0, z);
   g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 1.5, 8),
-    new THREE.MeshStandardMaterial({ color: 0x3a2412 }))).position.y = 0.75;
+    new THREE.MeshLambertMaterial({ color: 0x3a2412 }))).position.y = 0.75;
   const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8),
-    new THREE.MeshStandardMaterial({ color: 0x222, emissive: 0x000000 }));
+    new THREE.MeshLambertMaterial({ color: 0x222, emissive: 0x000000 }));
   bowl.position.y = 1.6; g.add(bowl);
   const fl = new THREE.PointLight(0xff7a18, 0, 7);
   fl.position.y = 1.9; g.add(fl);
@@ -189,15 +211,15 @@ export function makeWallTorch(x, z) {
   const g = new THREE.Group();
   g.position.set(x, 2.1, z);
   g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.6, 6),
-    new THREE.MeshStandardMaterial({ color: 0x2a2a30 }))).position.y = -0.3;
+    new THREE.MeshLambertMaterial({ color: 0x2a2a30 }))).position.y = -0.3;
   const flame = new THREE.Sprite(new THREE.SpriteMaterial({
     map: fireTex(), color: 0xffa838, transparent: true,
     blending: THREE.AdditiveBlending, depthWrite: false,
   }));
-  flame.scale.set(0.75, 1.2, 1);
+  // Dekoratif mesale: dinamik isik yerine daha genis parlama sprite'i.
+  flame.scale.set(1.15, 1.8, 1);
   flame.position.y = 0.3;
   g.add(flame);
-  g.add(new THREE.PointLight(0xff8a30, 0.85, 8)).position.y = 0.35;
   S.scene.add(g);
   levelMeshes.push(g);
   torches.push({ flame, x, z, lit: true });
@@ -208,9 +230,9 @@ export function makeValve(x, z) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
   g.add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 1, 0.7),
-    new THREE.MeshStandardMaterial({ color: 0x2a3540 }))).position.y = 0.5;
+    new THREE.MeshLambertMaterial({ color: 0x2a3540 }))).position.y = 0.5;
   const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.09, 8, 16),
-    new THREE.MeshStandardMaterial({ color: 0x4aa0d0, emissive: 0x0a3050, emissiveIntensity: 0.6 }));
+    new THREE.MeshLambertMaterial({ color: 0x4aa0d0, emissive: 0x0a3050, emissiveIntensity: 0.6 }));
   wheel.position.set(0, 1.1, 0.1);
   g.add(wheel);
   S.scene.add(g);
@@ -221,7 +243,7 @@ export function makeValve(x, z) {
 /** Basinc plakasi — ikisi ayni anda basilinca gecit acilir. */
 export function makePlate(x, z) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.14, 20),
-    new THREE.MeshStandardMaterial({ color: 0x666, emissive: 0x000000, emissiveIntensity: 0.8 }));
+    new THREE.MeshLambertMaterial({ color: 0x666, emissive: 0x000000, emissiveIntensity: 0.8 }));
   m.position.set(x, 0.07, z);
   S.scene.add(m);
   levelMeshes.push(m);
@@ -231,7 +253,7 @@ export function makePlate(x, z) {
 /** Bolum sonu pedi. */
 export function makeGoal(x, z, color) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.2, 24),
-    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1, transparent: true, opacity: 0.85 }));
+    new THREE.MeshLambertMaterial({ color, emissive: color, emissiveIntensity: 1, transparent: true, opacity: 0.85 }));
   m.position.set(x, 0.1, z);
   S.scene.add(m);
   levelMeshes.push(m);
@@ -248,16 +270,17 @@ export function makeGem(x, z, y) {
   const g = new THREE.Group();
   g.position.set(x, (y || 0) + 1.0, z);
   g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.34),
-    new THREE.MeshStandardMaterial({
-      color: 0xdffbff, emissive: 0x5fe6ff, emissiveIntensity: 2.2, roughness: 0.1, metalness: 0.3,
+    new THREE.MeshLambertMaterial({
+      color: 0xdffbff, emissive: 0x5fe6ff, emissiveIntensity: 2.2,
     })));
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({
     map: sparkTex(), color: 0x8fefff, transparent: true,
     blending: THREE.AdditiveBlending, depthWrite: false,
   }));
-  halo.scale.set(1.1, 1.1, 1);
+  // Isik yerine daha buyuk bir hale: elmas basina dinamik isik, bolum basina
+  // 3 isik demekti ve tum sahnenin gölgelendirici maliyetini artiriyordu.
+  halo.scale.set(1.9, 1.9, 1);
   g.add(halo);
-  g.add(new THREE.PointLight(0x6fe0ff, 0.7, 4));
   S.scene.add(g);
   levelMeshes.push(g);
   gems.push({ g, x, z, y: (y || 0) + 1.0, got: false });
@@ -277,8 +300,8 @@ export function makeSaw(x, z) {
   g.position.set(x, 0.7, z);
   // Tehlikeler parlak lavin uzerinde siluet olarak kaybolmasin diye kendiliginden
   // isik sacar; oyuncu testereyi her zeminde secebilmeli.
-  const steel = new THREE.MeshStandardMaterial({
-    color: 0xe8ecf6, metalness: 0.6, roughness: 0.25, emissive: 0x8fa0c0, emissiveIntensity: 0.9,
+  const steel = new THREE.MeshLambertMaterial({
+    color: 0xe8ecf6, emissive: 0x8fa0c0, emissiveIntensity: 0.9,
   });
   const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.1, 24), steel);
   disc.rotation.x = Math.PI / 2;
@@ -300,10 +323,10 @@ export function makeAxe(x, z) {
   const g = new THREE.Group();
   g.position.set(x, 4.2, z);
   g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.6, 6),
-    new THREE.MeshStandardMaterial({ color: 0x2a2a30 }))).position.y = -1.8;
+    new THREE.MeshLambertMaterial({ color: 0x2a2a30 }))).position.y = -1.8;
   const blade = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.14),
-    new THREE.MeshStandardMaterial({
-      color: 0xe8ecf6, metalness: 0.6, roughness: 0.28, emissive: 0x8fa0c0, emissiveIntensity: 0.9,
+    new THREE.MeshLambertMaterial({
+      color: 0xe8ecf6, emissive: 0x8fa0c0, emissiveIntensity: 0.9,
     }));
   blade.position.y = -3.5;
   g.add(blade);

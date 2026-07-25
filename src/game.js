@@ -9,6 +9,7 @@ import { TEX, buildTextures, sparkTex } from './textures.js';
 import { SFX, setMute, startHum, stopHum } from './audio.js';
 import { inp } from './input.js';
 import { makePlayer, updateAura } from './entities.js';
+import { resetLightBudget } from './world.js';
 import { LEVELS, LEVEL_NAMES } from './levels.js';
 import { getLevelIntro, FINAL_SCENE, showCutscene, isCutsceneOpen } from './story.js';
 import { recordLevelComplete, unlockLevel, recordDeath } from './progress.js';
@@ -115,6 +116,7 @@ function disposeObject(root) {
 function clearLevel() {
   for (const m of levelMeshes) { S.scene.remove(m); disposeObject(m); }
   resetLevelLists();
+  resetLightBudget();
   S.gemsGot = 0; S.gemsTotal = 0;
   S.doorTorch = S.doorValve = S.gateDual = S.valve = S.kulge = null;
   S.kulgeActive = false;
@@ -708,7 +710,7 @@ export function init() {
 
   // Kalici zemin. Dis sinir duvarlari YOK — her bolum kendi ceperini kurar.
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 220),
-    new THREE.MeshStandardMaterial({ map: TEX.stone, roughness: 1 }));
+    new THREE.MeshLambertMaterial({ map: TEX.stone }));
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(0, -0.02, 40);
   ground.receiveShadow = true;
@@ -723,7 +725,10 @@ export function init() {
     try {
       S.composer = new EffectComposer(S.renderer);
       S.composer.addPass(new RenderPass(S.scene, S.camera));
-      S.composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.75, 0.5, 0.28));
+      // Parlama yari cozunurlukte hesaplanir: zaten bulanik bir efekt oldugu icin
+      // gorsel fark yok, dolgu maliyeti dortte bire iner.
+      S.composer.addPass(new UnrealBloomPass(
+        new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.75, 0.5, 0.28));
     } catch { S.composer = null; }
   }
 

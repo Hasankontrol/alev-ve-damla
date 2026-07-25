@@ -49,8 +49,10 @@ export function updateAura(a, cx, cz, dt) {
  */
 export function makePlayer(color, faceColor, emissive, kind) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({
-    color, emissive: emissive || color, emissiveIntensity: 0.9, roughness: 0.35, metalness: 0.1,
+  // Lambert: her dinamik isik her materyali pahalilastirir; karakterler zaten
+  // kendiliginden isik sacar (emissive), PBR'a gerek yok.
+  const mat = new THREE.MeshLambertMaterial({
+    color, emissive: emissive || color, emissiveIntensity: 0.9,
   });
   const human = new THREE.Group();
   g.add(human);
@@ -151,8 +153,8 @@ export function loadModel(p, file) {
 /** Kulge: kapusonlu golge yaratik (pelerin + kapusun + kirmizi gozler + duman). */
 export function makeKulge(x, z) {
   const rig = new THREE.Group();
-  const dark = new THREE.MeshStandardMaterial({
-    color: 0x070709, emissive: 0x160020, emissiveIntensity: 0.6, roughness: 1,
+  const dark = new THREE.MeshLambertMaterial({
+    color: 0x070709, emissive: 0x160020, emissiveIntensity: 0.6,
   });
 
   const robe = new THREE.Mesh(new THREE.ConeGeometry(1.05, 3.3, 14), dark);
@@ -160,7 +162,7 @@ export function makeKulge(x, z) {
   const hood = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.15, 14), dark);
   hood.position.y = 3.1; rig.add(hood);
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.33, 14, 12),
-    new THREE.MeshStandardMaterial({ color: 0, emissive: 0x120018, roughness: 1 }));
+    new THREE.MeshLambertMaterial({ color: 0, emissive: 0x120018 }));
   head.position.set(0, 3.0, 0.06); rig.add(head);
 
   const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff1030 });
