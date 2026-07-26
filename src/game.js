@@ -11,6 +11,7 @@ import { inp } from './input.js';
 import { makePlayer, updateAura } from './entities.js';
 import { resetLightBudget } from './world.js';
 import { updateLiquids } from './liquids.js';
+import { net, isHost, isGuest, isNetActive, sendInput, sendSnapshot } from './net.js';
 import { LEVELS, LEVEL_NAMES } from './levels.js';
 import { getLevelIntro, FINAL_SCENE, showCutscene, isCutsceneOpen } from './story.js';
 import { recordLevelComplete, unlockLevel, recordDeath } from './progress.js';
@@ -248,6 +249,25 @@ function resolve(p) {
   p._support = support;
 }
 
+/**
+ * Girdi kaynagi. Cevrim ici oynanista host, Damla'nin tuslarini agdan alir;
+ * yerel oynanista her iki karakter de ayni klavyeden okunur.
+ */
+function playerInput(who, action) {
+  if (isHost() && who === 'water') return !!net.remoteInput[action];
+  return inp(who, action);
+}
+
+/** Guest kendi tuslarini gonderirken iki tus setini de kabul eder. */
+const localInputState = () => ({
+  up: inp('fire', 'up') || inp('water', 'up'),
+  down: inp('fire', 'down') || inp('water', 'down'),
+  left: inp('fire', 'left') || inp('water', 'left'),
+  right: inp('fire', 'right') || inp('water', 'right'),
+  jump: inp('fire', 'jump') || inp('water', 'jump'),
+  interact: playerInput('fire', 'interact') || playerInput('water', 'interact'),
+});
+
 function movePlayer(p, dt) {
   const who = p === S.fire ? 'fire' : 'water';
   const cam = p.cam || S.camera;                 // bolunmus ekranda kendi kamerasi
@@ -256,10 +276,10 @@ function movePlayer(p, dt) {
   const r = new THREE.Vector3().crossVectors(f, up).normalize();
 
   const dir = new THREE.Vector3();
-  if (inp(who, 'up')) dir.add(f);
-  if (inp(who, 'down')) dir.sub(f);
-  if (inp(who, 'right')) dir.add(r);
-  if (inp(who, 'left')) dir.sub(r);
+  if (playerInput(who, 'up')) dir.add(f);
+  if (playerInput(who, 'down')) dir.sub(f);
+  if (playerInput(who, 'right')) dir.add(r);
+  if (playerInput(who, 'left')) dir.sub(r);
 
   const moving = dir.lengthSq() > 0;
   if (moving) {
@@ -268,7 +288,7 @@ function movePlayer(p, dt) {
     p.g.position.z += dir.z * SPEED * dt;
     p.g.rotation.y = Math.atan2(dir.x, dir.z);
   }
-  if (inp(who, 'jump') && p.grounded) { p.vel.y = JUMP; p.grounded = false; SFX.jump(); }
+  if (playerInput(who, 'jump') && p.grounded) { p.vel.y = JUMP; p.grounded = false; SFX.jump(); }
 
   p.vel.y -= GRAV * dt;
   p.g.position.y += p.vel.y * dt;
@@ -420,7 +440,7 @@ function openDoor(d) {
 function interactions() {
   for (const t of torches) {
     if (!t.lit && near(S.fire, t.x, t.z, 1.7) &&
-        Math.abs(S.fire.g.position.y + 1.3 - t.y) < 1.1 && inp('fire', 'interact')) {
+        Math.abs(S.fire.g.position.y + 1.3 - t.y) < 1.1 && playerInput('fire', 'interact')) {
       t.lit = true;
       t.bowl.material.emissive.setHex(0xff6a00);
       t.bowl.material.emissiveIntensity = 1.4;
@@ -431,7 +451,7 @@ function interactions() {
   }
   if (S.doorTorch && torches.length && torches.every((t) => t.lit)) openDoor(S.doorTorch);
 
-  if (S.valve && !S.valve.active && near(S.water, S.valve.x, S.valve.z) && inp('water', 'interact')) {
+  if (S.valve && !S.valve.active && near(S.water, S.valve.x, S.valve.z) && playerInput('water', 'interact')) {
     S.valve.active = true;
     S.valve.wheel.material.emissive.setHex(0x2fd0ff);
     SFX.valve();
@@ -605,21 +625,26 @@ export function renderFrame() {
   // Ayni cihazda oynarken ana ekran Alev, kosedeki Damla olur; ileride cevrim ici
   // oynanista kosedeki pencere uzaktaki esi gosterecek — render yolu ayni.
   if (S.view === 'pip') {
+    // Cevrim ici oynanista ana ekran DAIMA kendi karakterin olur; yerel
+    // oynanista ana ekran Alev, kosedeki Damla.
+    const mainCam = isGuest() ? S.camWater : S.camFire;
+    const cornerCam = isGuest() ? S.camFire : S.camWater;
+
     S.renderer.getSize(_sz);
     const W = _sz.x, H = _sz.y;
-    if (S.camFire.aspect !== W / H) { S.camFire.aspect = W / H; S.camFire.updateProjectionMatrix(); }
+    if (mainCam.aspect !== W / H) { mainCam.aspect = W / H; mainCam.updateProjectionMatrix(); }
     S.renderer.setScissorTest(false);
     S.renderer.setViewport(0, 0, W, H);
-    S.renderer.render(S.scene, S.camFire);
+    S.renderer.render(S.scene, mainCam);
 
     const pw = Math.round(W * PIP_W), ph = Math.round(pw * 0.68);
     const px = W - pw - PIP_MARGIN, py = H - ph - PIP_MARGIN;
-    if (S.camWater.aspect !== pw / ph) { S.camWater.aspect = pw / ph; S.camWater.updateProjectionMatrix(); }
+    if (cornerCam.aspect !== pw / ph) { cornerCam.aspect = pw / ph; cornerCam.updateProjectionMatrix(); }
     S.renderer.setScissorTest(true);
     S.renderer.setViewport(px, py, pw, ph);
     S.renderer.setScissor(px, py, pw, ph);
     S.renderer.clear(true, true, false);           // kose penceresi kendi sahnesini cizsin
-    S.renderer.render(S.scene, S.camWater);
+    S.renderer.render(S.scene, cornerCam);
     S.renderer.setScissorTest(false);
     S.renderer.setViewport(0, 0, W, H);
     return;
@@ -645,9 +670,87 @@ export function renderFrame() {
   else S.renderer.render(S.scene, S.camera);
 }
 
+// ---------- cevrim ici: durum paketleme / uygulama ----------
+const pos4 = (o) => [+o.position.x.toFixed(2), +o.position.y.toFixed(2), +o.position.z.toFixed(2), +o.rotation.y.toFixed(2)];
+const bits = (arr, fn) => arr.reduce((m, x, i) => m | (fn(x) ? (1 << i) : 0), 0);
+
+/** Host: yetkili durumu paketler. Sadece degisebilen seyler gonderilir. */
+function buildSnapshot(t) {
+  return {
+    lv: S.curLevel,
+    f: pos4(S.fire.g), w: pos4(S.water.g),
+    k: S.kulge ? pos4(S.kulge.g) : 0,
+    fh: Math.round(S.fire.health), wh: Math.round(S.water.health),
+    dr: (S.doorTorch && !S.doorTorch.solid ? 1 : 0)
+      | (S.doorValve && !S.doorValve.solid ? 2 : 0)
+      | (S.gateDual && !S.gateDual.solid ? 4 : 0),
+    tl: bits(torches, (x) => x.lit),
+    gm: bits(gems, (x) => x.got),
+    va: S.valve?.active ? 1 : 0,
+    ka: S.kulgeActive ? 1 : 0,
+    gg: S.gemsGot, gt: S.gemsTotal,
+    tm: +(t - (S.levelStart || 0)).toFixed(1),
+  };
+}
+
+/** Guest: gelen durumu sahneye uygular. Hicbir simulasyon yapmaz. */
+function applySnapshot(s) {
+  const put = (obj, a) => { if (a) { obj.position.set(a[0], a[1], a[2]); obj.rotation.y = a[3]; } };
+  put(S.fire.g, s.f); put(S.water.g, s.w);
+  if (S.kulge && s.k) { S.kulge.g.visible = true; put(S.kulge.g, s.k); }
+  S.fire.health = s.fh; S.water.health = s.wh;
+
+  // kapilar: host'ta acilan kapi burada da acilsin
+  const setDoor = (d, open) => {
+    if (!d || !open || !d.solid) return;
+    d.solid = false; d.mesh.position.y = -3;
+  };
+  setDoor(S.doorTorch, s.dr & 1); setDoor(S.doorValve, s.dr & 2); setDoor(S.gateDual, s.dr & 4);
+
+  torches.forEach((x, i) => {
+    if (x.lit || !(s.tl & (1 << i))) return;
+    x.lit = true;
+    if (x.bowl) { x.bowl.material.emissive.setHex(0xff6a00); x.bowl.material.emissiveIntensity = 1.4; }
+    if (x.fl) x.fl.intensity = 1.6;
+    if (x.flame) x.flame.visible = true;
+  });
+  gems.forEach((g, i) => { if (s.gm & (1 << i)) { g.got = true; g.g.visible = false; } });
+  if (s.va && S.valve) S.valve.active = true;
+  S.kulgeActive = !!s.ka;
+
+  el('gemCount').textContent = s.gg + '/' + s.gt;
+  el('timeNow').textContent = `${Math.floor(s.tm / 60)}:${String(Math.floor(s.tm % 60)).padStart(2, '0')}`;
+}
+
+/** Cevrim ici gorsel guncellemeler — guest simulasyon yapmaz ama sahne yasar. */
+function visualsOnly(dt, t) {
+  animateWorld(t);
+  updateFires(dt);
+  updateDust(dt, t);
+  updateAura(S.fire.aura, S.fire.g.position.x, S.fire.g.position.z, dt);
+  updateAura(S.water.aura, S.water.g.position.x, S.water.g.position.z, dt);
+  for (const t2 of torches) if (t2.flame) t2.flame.material.opacity = 0.7 + Math.sin(t * 20 + t2.x) * 0.3;
+  for (const p of [S.fire, S.water]) {
+    p.mat.emissiveIntensity = 0.75 + Math.sin(t * 8 + p.phase) * 0.2;
+    p.head.position.y = 1.85 + Math.sin(t * 3 + p.phase) * 0.03;
+  }
+  document.querySelector('#hpFire .fill').style.width = S.fire.health + '%';
+  document.querySelector('#hpWater .fill').style.width = S.water.health + '%';
+  el('objective').textContent = S.curHint();
+}
+
 export function frame(dt, t) {
   if (mixers.length) mixers.forEach((m) => m.update(dt));
   if (!(S.started && !S.won && !S.paused)) return;
+
+  // GUEST: hicbir simulasyon yok — kendi tuslarini yolla, gelen durumu uygula.
+  if (isGuest()) {
+    sendInput(performance.now(), localInputState());
+    if (net.snapshot) applySnapshot(net.snapshot);
+    updateCamera(dt);
+    visualsOnly(dt, t);
+    return;
+  }
 
   updateMovers(t);
   movePlayer(S.fire, dt);
@@ -682,6 +785,8 @@ export function frame(dt, t) {
 
   const secs = Math.max(0, t - (S.levelStart || 0));
   el('timeNow').textContent = `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
+
+  if (isHost()) sendSnapshot(performance.now(), buildSnapshot(t));
 }
 
 /**

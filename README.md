@@ -69,6 +69,27 @@ Başlangıç ekranından seçilir:
 Ortak tek kamera, oyuncular ayrılınca geri çekilip ikisini de görünmez hâle
 getiriyordu; "akıllı" mod bu sorunu çözer.
 
+### İki ayrı cihazdan oynama (online)
+
+Başlangıç ekranında:
+
+1. Biriniz **ODA KUR**'a basar → ekranda 4 harfli bir kod çıkar (🔥 Alev'i oynar)
+2. Diğeri kodu yazıp **KATIL**'a basar (💧 Damla'yı oynar)
+3. Bağlantı kurulunca oyun ikisinde de başlar
+
+Her ekranda **ana görüntü kendi karakterin**, sağ üstteki küçük pencerede **eşin**
+görünür — nerede olduğunu ve ne yaptığını anlık takip edersin.
+
+**Mimari:** Oda kuran taraf tüm simülasyonu yürütür (sunucu-yetkili), katılan
+taraf yalnızca tuşlarını gönderip gelen durumu ekrana uygular. Bu sayede iki
+cihazda farklı sonuç oluşması yapısal olarak imkânsızdır. Bağlantı **doğrudan
+iki cihaz arasındadır** (WebRTC); PeerJS'in ücretsiz aracısı sadece ilk
+tanıştırma için kullanılır, oyun verisi sunucudan geçmez.
+
+> ⚠ **WebRTC yalnızca HTTPS veya localhost üzerinde çalışır.** Telefonlarda
+> `http://192.168...` gibi bir adresle **bağlanmaz**. Bunun için oyunun HTTPS bir
+> adreste yayında olması gerekir (aşağıdaki GitHub Pages adımı).
+
 ### Telefona kurma (Android)
 
 Oyun bir **PWA**'dır: Chrome ile açıp menüden *"Ana ekrana ekle"* dersen

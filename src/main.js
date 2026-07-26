@@ -7,6 +7,7 @@ import { init, frame, renderFrame, loadLevel } from './game.js';
 import { showCutscene, INTRO_SCENE } from './story.js';
 import { buildLevelMenu, showLevelMenu, hideLevelMenu } from './menu.js';
 import { LEVEL_NAMES } from './levels.js';
+import { net, hostRoom, joinRoom, isGuest } from './net.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -114,6 +115,46 @@ el('pauseLevelsBtn').addEventListener('click', () => { resume(); showLevelMenu()
 
 el('againBtn').addEventListener('click', () => location.reload());
 
+// --- cevrim ici oynanis (iki ayri cihaz) ---
+const netStatus = (msg) => { el('netStatus').innerHTML = msg; };
+
+net.onStatus = (s) => {
+  if (s === 'bekleniyor') {
+    netStatus(`Oda kodun: <b style="font-size:22px;color:#ff9d3f;letter-spacing:4px">${net.roomCode}</b><br>
+               Eşin bu kodu girip katılınca oyun kendiliğinden başlayacak.`);
+  } else if (s === 'baglaniyor') {
+    netStatus('Bağlanıyor…');
+  } else if (s === 'bagli') {
+    netStatus('✅ Bağlandı! Oyun başlıyor…');
+    startOnline();
+  } else if (s === 'hata') {
+    netStatus(`⚠ Bağlantı hatası: ${net.error}<br>
+               <span style="color:#7d8290">WebRTC yalnızca HTTPS veya localhost üzerinde çalışır.</span>`);
+  } else if (s === 'kapandi') {
+    netStatus('Bağlantı koptu. Sayfayı yenileyip tekrar deneyin.');
+  }
+};
+
+// Host bolum degistirdiginde guest de ayni bolumu kursun.
+net.onLevel = (i) => { if (S.started && i !== S.curLevel) loadLevel(i, { skipIntro: true }); };
+
+function startOnline() {
+  if (S.started) return;
+  applySettingsOnce();
+  S.view = 'pip';                 // ana ekran kendi karakterin, kosede esin
+  enterGameUI();
+  el('pipFrame').querySelector('span').textContent = isGuest() ? '🔥 EŞİM' : '💧 EŞİM';
+  S.started = true;
+  loadLevel(0, { skipIntro: true });
+}
+
+el('hostBtn').addEventListener('click', () => { hostRoom(); });
+el('joinBtn').addEventListener('click', () => {
+  const code = el('joinCode').value.trim().toUpperCase();
+  if (code.length !== 4) { netStatus('⚠ Oda kodu 4 karakter olmalı.'); return; }
+  joinRoom(code);
+});
+
 // Telefona kurulabilmesi ve internetsiz acilabilmesi icin servis iscisi.
 // Yalnizca uretim derlemesinde kaydedilir; gelistirme sunucusunda HMR'i bozar.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -143,6 +184,7 @@ window.__g = {
   get plates() { return plates; },
   get torches() { return torches; },
   get hazards() { return hazards; },
+  get net() { return net; },
   get binds() { return { fire: { ...bindFire }, water: { ...bindWater } }; },
   get valveActive() { return S.valve && S.valve.active; },
   get keys() { return { ...keys }; },

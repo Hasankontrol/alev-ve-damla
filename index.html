@@ -94,7 +94,16 @@
       🔥 <input type="file" id="modelFire" accept=".glb,.gltf"> &nbsp; 💧 <input type="file" id="modelWater" accept=".glb,.gltf">
     </div>
     <p style="font-size:12px;color:#777">Kamera: fare sürükle · tekerlek yakınlaş</p>
-    <button class="btn" id="startBtn">BAŞLA</button>
+    <div class="secTitle">📱 İki ayrı cihazdan oyna (online)</div>
+    <div class="modebox">
+      <button class="btn" id="hostBtn" style="background:#20242e;color:#ff9d3f;margin-top:0">ODA KUR (🔥 Alev)</button>
+      <input id="joinCode" placeholder="ODA KODU" maxlength="4"
+             style="width:110px;padding:10px;border-radius:10px;border:1px solid #3a3f4d;background:#20242e;color:#fff;text-transform:uppercase;text-align:center;font-weight:700;letter-spacing:2px">
+      <button class="btn" id="joinBtn" style="background:#20242e;color:#5fd8ff;margin-top:0">KATIL (💧 Damla)</button>
+    </div>
+    <div class="hint" id="netStatus">Oda kuran Alev'i, katılan Damla'yı oynar. Bağlantı doğrudan iki cihaz arasındadır.</div>
+
+    <button class="btn" id="startBtn">TEK CİHAZDA BAŞLA</button>
     <button class="btn" id="levelsBtn" style="background:#20242e;color:#cfd2dd;margin-left:8px">BÖLÜM SEÇ</button>
   </div>
 </div>
