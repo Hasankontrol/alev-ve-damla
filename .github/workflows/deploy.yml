@@ -1,13 +1,9 @@
 name: GitHub Pages'e yayınla
 
-# Depo su an GIZLI. Ucretsiz GitHub hesabinda Pages sadece herkese acik
-# depolarda calisir, bu yuzden otomatik yayin kapali — yalnizca elle tetiklenir.
-# Depoyu herkese acik yaptiginda asagidaki "push" tetikleyicisinin yorumunu kaldir:
-#
-#   push:
-#     branches: [main]
-#
+# Depo herkese acik: her push otomatik olarak yeni surumu yayinlar.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

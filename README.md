@@ -150,16 +150,12 @@ güncellemeler (`updateFires`, `updateHazards`, …) `game.js`'tedir.
 
 ### Yayınlama (GitHub Pages)
 
-Depo şu an **gizli**. Ücretsiz hesapta GitHub Pages yalnızca herkese açık
-depolarda çalıştığı için otomatik yayın kapalıdır.
+Depo herkese açık ve **her `git push` otomatik olarak yeni sürümü yayınlar**
+(`.github/workflows/deploy.yml`). Deponun *Settings → Pages* bölümünde kaynak
+**GitHub Actions** olarak seçili olmalıdır.
 
-Oyunu linkle paylaşmak istersen:
-
-1. GitHub'da depo → **Settings → General → Change visibility → Public**
-2. **Settings → Pages → Source: GitHub Actions**
-3. `.github/workflows/deploy.yml` içindeki `push` tetikleyicisinin yorumunu kaldır
-
-Sonrasında her `git push` otomatik olarak yeni sürümü yayınlar.
+HTTPS adres, oyunun telefona kurulabilmesi ve çevrim içi oynanışın (WebRTC)
+çalışabilmesi için gereklidir.
 
 ### Notlar
 
