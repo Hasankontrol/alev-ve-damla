@@ -3,11 +3,11 @@ import { S, solids, zones, gems, plates, torches, hazards } from './state.js';
 import { resumeAudio, setMute } from './audio.js';
 import { bindFire, bindWater, buildCtrls, buildTouch, showTouch, assignPads, keys } from './input.js';
 import { applyMode, loadFace, loadModel } from './entities.js';
-import { init, frame, renderFrame, loadLevel } from './game.js';
+import { init, frame, renderFrame, loadLevel, setFixedCam } from './game.js';
 import { showCutscene, INTRO_SCENE } from './story.js';
 import { buildLevelMenu, showLevelMenu, hideLevelMenu } from './menu.js';
 import { LEVEL_NAMES } from './levels.js';
-import { net, hostRoom, joinRoom, isGuest } from './net.js';
+import { net, hostRoom, joinRoom, isGuest, isNetActive, disconnect } from './net.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -135,6 +135,38 @@ el('pauseSound').addEventListener('change', (e) => {
   setMute(!e.target.checked);
   el('gems').style.opacity = S.muted ? 0.5 : 1;
 });
+
+// Sabit bakis acisi — iki yerden de acilabilir, ikisi senkron kalir.
+el('fixedCam').addEventListener('change', (e) => {
+  setFixedCam(e.target.checked);
+  el('pauseFixedCam').checked = e.target.checked;
+});
+el('pauseFixedCam').addEventListener('change', (e) => {
+  setFixedCam(e.target.checked);
+  el('fixedCam').checked = e.target.checked;
+});
+
+/**
+ * Oyundan cikip ana menuye doner. Cevrim ici oynanista baglanti da kapatilir
+ * (karsi taraf yalniz kalmasin diye once onay istenir).
+ */
+function exitToMenu() {
+  if (isNetActive() && !confirm('Çevrim içi oyundan çıkılacak ve eşinin bağlantısı kopacak. Emin misin?')) return;
+  if (isNetActive()) disconnect();
+
+  S.started = false; S.paused = false; S.won = false; S.transitioning = false;
+  S.view = 'shared';
+  document.body.classList.remove('pip');
+
+  ['pauseScreen', 'hud', 'topbar', 'gems', 'timer', 'winScreen', 'pipFrame', 'splitLine', 'touchCtrls']
+    .forEach((id) => el(id).classList.add('hidden'));
+  hideLevelMenu();
+  el('startScreen').classList.remove('hidden');
+  showPage('main');
+  netStatus('Oda kuran <b style="color:#ff9d3f">Alev</b>\'i, katılan <b style="color:#5fd8ff">Damla</b>\'yı oynar. Bağlantı doğrudan iki cihaz arasındadır.');
+  el('soloWrap')?.classList.toggle('hidden', isPhone);
+}
+el('exitBtn').addEventListener('click', exitToMenu);
 
 el('resumeBtn').addEventListener('click', resume);
 el('restartBtn').addEventListener('click', () => { resume(); loadLevel(S.curLevel, { skipIntro: true }); });

@@ -841,6 +841,7 @@ addEventListener('keydown', (e) => {
       const radio = document.querySelector(`input[name="pauseView"][value="${mode}"]`);
       if (radio) radio.checked = true;
       el('pauseSound').checked = !S.muted;
+      el('pauseFixedCam').checked = S.fixedCam;
     }
     el('pauseScreen').classList.toggle('hidden', !S.paused);
   }
@@ -862,6 +863,15 @@ addEventListener('keydown', (e) => {
  * cok daralir ve karakter asiri yakin gorunur. Bu yuzden hedef bir YATAY gorus
  * acisindan geriye dogru dikey fov hesaplanir.
  */
+/** Sabit bakis acisinin varsayilan degerleri (klasik platform oyunu acisi). */
+export const FIXED_YAW = -0.12, FIXED_PITCH = 0.62;
+
+/** Sabit modu acar/kapatir; acarken kamerayi standart aciya oturtur. */
+export function setFixedCam(on) {
+  S.fixedCam = !!on;
+  if (on) { S.camYaw = FIXED_YAW; S.camPitch = FIXED_PITCH; }
+}
+
 const TARGET_HFOV = 62 * Math.PI / 180;
 function applyFov() {
   const aspect = Math.max(0.3, innerWidth / innerHeight);
@@ -938,7 +948,7 @@ export function init() {
   S.renderer.domElement.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
   addEventListener('pointerup', () => { dragging = false; });
   addEventListener('pointermove', (e) => {
-    if (!dragging) return;
+    if (!dragging || S.fixedCam) return;      // sabit modda kamera dondurulmez
     S.camYaw += (e.clientX - lastX) * 0.006;
     S.camPitch = Math.max(0.28, Math.min(1.2, S.camPitch + (e.clientY - lastY) * 0.004));
     lastX = e.clientX; lastY = e.clientY;

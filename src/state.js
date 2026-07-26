@@ -40,6 +40,8 @@ export const S = {
 
   // kamera
   camYaw: -0.12, camPitch: 0.6, camDistBase: 15,
+  /** Sabit bakis acisi: kamera fare/dokunusla dondurulemez, hep ayni acidan bakar. */
+  fixedCam: false,
 
   // aktif bolumun ipucu metni
   curHint: () => '',

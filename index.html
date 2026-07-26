@@ -40,12 +40,14 @@
       <label><input type="radio" name="pauseView" value="pip"> Köşe penceresi</label>
     </div>
 
+    <label class="modebox"><input type="checkbox" id="pauseFixedCam"> 🔒 Sabit bakış açısı</label>
     <label class="modebox"><input type="checkbox" id="pauseSound" checked> 🔊 Ses açık</label>
 
     <div style="margin-top:12px">
       <button class="btn" id="resumeBtn">DEVAM ET</button>
       <button class="btn" id="restartBtn" style="background:#20242e;color:#cfd2dd">BÖLÜMÜ YENİDEN</button>
       <button class="btn" id="pauseLevelsBtn" style="background:#20242e;color:#cfd2dd">BÖLÜM SEÇ</button>
+      <button class="btn" id="exitBtn" style="background:#20242e;color:#ff8f8f">ÇIKIŞ · ANA MENÜ</button>
     </div>
     <div class="hint"><b>Esc</b> ayarları aç/kapat · <b>R</b> bölümü yeniden · <b>M</b> ses</div>
   </div>
@@ -149,6 +151,8 @@
         <b>Akıllı:</b> uzaklaşınca ekran ikiye bölünür, yan yana gelince birleşir.<br>
         <b>Köşe penceresi:</b> ana ekranda sen, sağ üstte eşin. <i>(çevrim içi oynarken bu düzen kendiliğinden kullanılır)</i>
       </div>
+      <label class="check"><input type="checkbox" id="fixedCam"> 🔒 Sabit bakış açısı <i>(kamera fareyle dönmez)</i></label>
+      <div class="note">Sabit modda kamera hep aynı açıdan bakar — yön şaşırmazsın. Kapalıyken fareyle sürükleyip döndürebilirsin.</div>
       <div class="note">Oyun içinde <b>Esc</b> ile bu ayarlara dönebilirsin.</div>
     </section>
 

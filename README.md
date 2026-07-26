@@ -66,6 +66,11 @@ Başlangıç ekranından seçilir:
 | **Hep bölünmüş** | Ekran her zaman ikiye bölü — 2 kumanda ile ideal |
 | **Köşe penceresi** | Ana ekran 🔥 Alev, sağ üstteki küçük pencerede 💧 Damla |
 
+Ayrıca **🔒 Sabit bakış açısı** seçeneği vardır: açıkken kamera fareyle
+döndürülemez, hep aynı açıdan bakar — yön şaşırmak istemeyenler için.
+Oyun içinde **Esc** ile açılan ayarlardan da değiştirilebilir; aynı panelde
+**Çıkış · Ana Menü** düğmesi bulunur.
+
 Ortak tek kamera, oyuncular ayrılınca geri çekilip ikisini de görünmez hâle
 getiriyordu; "akıllı" mod bu sorunu çözer.
 
