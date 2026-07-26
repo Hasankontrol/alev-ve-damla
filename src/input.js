@@ -142,39 +142,67 @@ addEventListener('keydown', (e) => {
 }, true);
 
 // --- dokunmatik kontroller (mobil) ---
-export function buildTouch() {
+function mkBtn(box, who, act, label, style, cls) {
+  const b = document.createElement('button');
+  b.className = 'tbtn ' + who + (cls ? ' ' + cls : '');
+  b.textContent = label;
+  Object.assign(b.style, style);
+  const on  = (e) => { e.preventDefault(); touchIn[who][act] = true; };
+  const off = (e) => { e.preventDefault(); touchIn[who][act] = false; };
+  b.addEventListener('pointerdown', on);
+  b.addEventListener('pointerup', off);
+  b.addEventListener('pointercancel', off);
+  b.addEventListener('pointerleave', off);
+  box.appendChild(b);
+}
+
+/**
+ * Dokunmatik tuslari kurar.
+ *
+ * @param {'fire'|'water'|'both'} mode
+ *   'fire' / 'water' : TEK oyuncu duzeni — yon tuslari sol altta, eylem tuslari
+ *     sag altta, tuslar buyuk. Cevrim ici oynanista her cihaz yalnizca KENDI
+ *     karakterinin tuslarini gorur; ikisini birden gostermek ekrani karistirip
+ *     tuslarin ust uste binmesine yol aciyordu.
+ *   'both' : ayni cihazda iki kisi — iki kucuk kume, solda Alev, sagda Damla.
+ */
+export function buildTouch(mode = 'both') {
   const box = document.getElementById('touchCtrls');
-  const mk = (who, act, label, style) => {
-    const b = document.createElement('button');
-    b.className = 'tbtn ' + who;
-    b.textContent = label;
-    Object.assign(b.style, style);
-    const on  = (e) => { e.preventDefault(); touchIn[who][act] = true; };
-    const off = (e) => { e.preventDefault(); touchIn[who][act] = false; };
-    b.addEventListener('pointerdown', on);
-    b.addEventListener('pointerup', off);
-    b.addEventListener('pointercancel', off);
-    b.addEventListener('pointerleave', off);
-    box.appendChild(b);
-  };
-  // Alev: sol alt kume
-  mk('fire', 'up', '▲', { left: '70px', bottom: '132px' });
-  mk('fire', 'down', '▼', { left: '70px', bottom: '14px' });
-  mk('fire', 'left', '◀', { left: '10px', bottom: '73px' });
-  mk('fire', 'right', '▶', { left: '130px', bottom: '73px' });
-  mk('fire', 'jump', '⤒', { left: '198px', bottom: '26px' });
-  mk('fire', 'interact', '✦', { left: '198px', bottom: '92px' });
-  // Damla: sag alt kume
-  mk('water', 'up', '▲', { right: '70px', bottom: '132px' });
-  mk('water', 'down', '▼', { right: '70px', bottom: '14px' });
-  mk('water', 'left', '◀', { right: '130px', bottom: '73px' });
-  mk('water', 'right', '▶', { right: '10px', bottom: '73px' });
-  mk('water', 'jump', '⤒', { right: '198px', bottom: '26px' });
-  mk('water', 'interact', '✦', { right: '198px', bottom: '92px' });
+  box.innerHTML = '';
+  box.classList.toggle('solo', mode !== 'both');
+
+  if (mode === 'both') {
+    mkBtn(box, 'fire', 'up', '▲', { left: '70px', bottom: '132px' });
+    mkBtn(box, 'fire', 'down', '▼', { left: '70px', bottom: '14px' });
+    mkBtn(box, 'fire', 'left', '◀', { left: '10px', bottom: '73px' });
+    mkBtn(box, 'fire', 'right', '▶', { left: '130px', bottom: '73px' });
+    mkBtn(box, 'fire', 'jump', '⤒', { left: '198px', bottom: '26px' });
+    mkBtn(box, 'fire', 'interact', '✦', { left: '198px', bottom: '92px' });
+    mkBtn(box, 'water', 'up', '▲', { right: '70px', bottom: '132px' });
+    mkBtn(box, 'water', 'down', '▼', { right: '70px', bottom: '14px' });
+    mkBtn(box, 'water', 'left', '◀', { right: '130px', bottom: '73px' });
+    mkBtn(box, 'water', 'right', '▶', { right: '10px', bottom: '73px' });
+    mkBtn(box, 'water', 'jump', '⤒', { right: '198px', bottom: '26px' });
+    mkBtn(box, 'water', 'interact', '✦', { right: '198px', bottom: '92px' });
+    return;
+  }
+
+  // Tek oyuncu: yon tuslari solda buyuk bir yon pedi, eylemler sagda.
+  const w = mode;
+  mkBtn(box, w, 'up', '▲', { left: '92px', bottom: '176px' }, 'big');
+  mkBtn(box, w, 'down', '▼', { left: '92px', bottom: '32px' }, 'big');
+  mkBtn(box, w, 'left', '◀', { left: '20px', bottom: '104px' }, 'big');
+  mkBtn(box, w, 'right', '▶', { left: '164px', bottom: '104px' }, 'big');
+  // Eylem tuslari sag kenarda DIKEY dizilir; yan yana konuldugunda dar
+  // ekranlarda sag yon tusuyla ust uste biniyorlardi.
+  mkBtn(box, w, 'jump', '⤒', { right: '20px', bottom: '40px' }, 'big act');
+  mkBtn(box, w, 'interact', '✦', { right: '20px', bottom: '124px' }, 'big act');
 }
 
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || location.search.includes('touch');
 
-export function showTouch() {
+/** @param {'fire'|'water'|'both'} mode */
+export function showTouch(mode = 'both') {
+  buildTouch(mode);
   if (isTouch) document.getElementById('touchCtrls').classList.remove('hidden');
 }

@@ -227,6 +227,17 @@ canvas { display: block; }
   font-size: 11px; font-weight: 700; color: #bff0ff; text-shadow: 0 1px 3px #000;
 }
 
+/* Kose penceresi acikken sag ust kose ona ayrilir: can barlari sola yigilir,
+   elmas/sure sayaci pencerenin ALTINA iner. Onceden ust uste biniyorlardi. */
+body.pip #hud { flex-direction: column; gap: 6px; right: auto; width: 210px; }
+body.pip #hpWater { text-align: left; }
+body.pip #hpWater .fill { margin-left: 0; }
+body.pip #gems, body.pip #timer { right: 14px; }
+body.pip #gems { top: calc(26vw * 0.68 + 24px); }
+body.pip #timer { top: calc(26vw * 0.68 + 46px); }
+/* Can barlari dikey yigildigi icin bolum adi/gorev metni asagi kayar. */
+body.pip #topbar { top: 96px; }
+
 #touchCtrls { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
 .tbtn {
   position: absolute; pointer-events: auto; width: 56px; height: 56px; border-radius: 12px; opacity: .85;
@@ -238,3 +249,6 @@ canvas { display: block; }
 .tbtn:active { background: rgba(255, 255, 255, .3); }
 .tbtn.fire { border-color: #ff9d3f; color: #ffcf8f; }
 .tbtn.water { border-color: #5fd8ff; color: #bff0ff; }
+/* Tek oyuncu duzeni: ekranin tamami tek kisiye kaldigi icin tuslar buyur. */
+.tbtn.big { width: 68px; height: 68px; font-size: 26px; border-radius: 16px; opacity: .9; }
+.tbtn.act { background: rgba(60, 70, 92, .55); border-width: 2px; }

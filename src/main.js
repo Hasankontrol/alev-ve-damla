@@ -14,7 +14,6 @@ const el = (id) => document.getElementById(id);
 // --- baslangic ekrani: tus atama + dokunmatik kontroller ---
 buildCtrls('ctrlFire', bindFire);
 buildCtrls('ctrlWater', bindWater);
-buildTouch();
 
 // --- menu sayfalari ---
 // Her secenek kendi sayfasinda; ayni anda yalnizca biri gorunur.
@@ -62,8 +61,13 @@ el('modelWater').addEventListener('change', (e) => {
 });
 
 // --- oyunu baslat ---
-/** Ayarlar yalnizca ilk baslangicta uygulanir; menuden bolum secilince tekrarlanmaz. */
-function applySettingsOnce() {
+/**
+ * Ayarlar yalnizca ilk baslangicta uygulanir; menuden bolum secilince tekrarlanmaz.
+ * @param {'fire'|'water'|'both'} touchMode hangi karakterin dokunmatik tuslari
+ *   gosterilecek. Cevrim ici oynanista her cihaz SADECE kendi karakterinin
+ *   tuslarini gorur.
+ */
+function applySettingsOnce(touchMode = 'both') {
   if (S.started) return;
   S.useStandee = el('fotoFigur').checked;
   applyMode(S.fire);
@@ -74,7 +78,7 @@ function applySettingsOnce() {
   S.splitMode = mode === 'always' ? 'always' : 'auto';
 
   assignPads();
-  showTouch();
+  showTouch(touchMode);
 }
 
 function enterGameUI() {
@@ -164,7 +168,8 @@ net.onLevel = (i) => { if (S.started && i !== S.curLevel) loadLevel(i, { skipInt
 
 function startOnline() {
   if (S.started) return;
-  applySettingsOnce();
+  // Bu cihaz hangi karakteri oynuyorsa yalnizca onun tuslari cizilir.
+  applySettingsOnce(isGuest() ? 'water' : 'fire');
   S.view = 'pip';                 // ana ekran kendi karakterin, kosede esin
   enterGameUI();
   el('pipFrame').querySelector('span').textContent = isGuest() ? '🔥 EŞİM' : '💧 EŞİM';

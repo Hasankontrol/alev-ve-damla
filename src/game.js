@@ -566,9 +566,11 @@ function updateSplitState() {
     S.water.cam = S.camWater;
     el('splitLine').classList.add('hidden');
     el('pipFrame').classList.remove('hidden');
+    document.body.classList.add('pip');   // HUD kose penceresine yer acsin
     return;
   }
   el('pipFrame').classList.add('hidden');
+  document.body.classList.remove('pip');
   if (S.splitMode === 'always') { S.split = true; }
   else {
     const sep = S.fire.g.position.distanceTo(S.water.g.position);
@@ -632,14 +634,20 @@ export function renderFrame() {
 
     S.renderer.getSize(_sz);
     const W = _sz.x, H = _sz.y;
-    if (mainCam.aspect !== W / H) { mainCam.aspect = W / H; mainCam.updateProjectionMatrix(); }
+    if (mainCam.aspect !== W / H || mainCam.fov !== S.camera.fov) {
+      mainCam.aspect = W / H; mainCam.fov = S.camera.fov; mainCam.updateProjectionMatrix();
+    }
     S.renderer.setScissorTest(false);
     S.renderer.setViewport(0, 0, W, H);
     S.renderer.render(S.scene, mainCam);
 
     const pw = Math.round(W * PIP_W), ph = Math.round(pw * 0.68);
     const px = W - pw - PIP_MARGIN, py = H - ph - PIP_MARGIN;
-    if (cornerCam.aspect !== pw / ph) { cornerCam.aspect = pw / ph; cornerCam.updateProjectionMatrix(); }
+    // Kose penceresi yatay; ana ekranin dik-ekran icin genisletilmis gorus
+    // acisi burada balikgozu yaratirdi, bu yuzden sabit bir aci kullanilir.
+    if (cornerCam.aspect !== pw / ph || cornerCam.fov !== 60) {
+      cornerCam.aspect = pw / ph; cornerCam.fov = 60; cornerCam.updateProjectionMatrix();
+    }
     S.renderer.setScissorTest(true);
     S.renderer.setViewport(px, py, pw, ph);
     S.renderer.setScissor(px, py, pw, ph);
@@ -847,6 +855,25 @@ addEventListener('keydown', (e) => {
   }
 });
 
+/**
+ * Telefonda (dik ekran) gorus alanini duzeltir.
+ *
+ * PerspectiveCamera'nin fov'u DIKEY'dir; dar ve uzun bir ekranda yatay gorus
+ * cok daralir ve karakter asiri yakin gorunur. Bu yuzden hedef bir YATAY gorus
+ * acisindan geriye dogru dikey fov hesaplanir.
+ */
+const TARGET_HFOV = 62 * Math.PI / 180;
+function applyFov() {
+  const aspect = Math.max(0.3, innerWidth / innerHeight);
+  const vFov = 2 * Math.atan(Math.tan(TARGET_HFOV / 2) / aspect) * 180 / Math.PI;
+  const fov = Math.min(96, Math.max(52, vFov));      // asiri balikgozu olmasin
+  for (const c of [S.camera, S.camFire, S.camWater]) {
+    if (!c) continue;
+    c.fov = fov;
+    c.updateProjectionMatrix();
+  }
+}
+
 // ---------- kurulum ----------
 export function init() {
   S.scene = new THREE.Scene();
@@ -919,11 +946,13 @@ export function init() {
   addEventListener('wheel', (e) => {
     S.camDistBase = Math.max(9, Math.min(26, S.camDistBase + e.deltaY * 0.01));
   }, { passive: true });
+  applyFov();
   addEventListener('resize', () => {
     S.camera.aspect = innerWidth / innerHeight;
     S.camera.updateProjectionMatrix();
     S.renderer.setSize(innerWidth, innerHeight);
     S.composer?.setSize(innerWidth, innerHeight);
+    applyFov();
   });
 
   tick();
