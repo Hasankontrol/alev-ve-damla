@@ -51,60 +51,121 @@
   </div>
 </div>
 
-<!-- baslangic ekrani -->
+<!-- baslangic ekrani: her secenek kendi sayfasinda (tek ekranda yigilma yok) -->
 <div class="overlay" id="startScreen">
-  <div class="card">
-    <h1><span class="a">Alev</span> ve <span class="d">Damla</span></h1>
-    <p style="color:#8a8fa0;font-size:13px;margin-top:0">Gölgeden Kaçış — 2 kişilik işbirliği · 8 Bölüm</p>
+  <div class="menu">
 
-    <div class="faces">
-      <div class="face">
-        <div class="thumb" id="thumbFire"></div>
-        <label>🔥 Alev — senin fotoğrafın</label>
-        <input type="file" id="fileFire" accept="image/*">
+    <!-- ===== ANA MENU ===== -->
+    <section class="page" data-page="main">
+      <div class="brand">
+        <h1><span class="a">ALEV</span><span class="dot"></span><span class="d">DAMLA</span></h1>
+        <div class="tagline">GÖLGEDEN KAÇIŞ — İKİ KİŞİLİK İŞBİRLİĞİ</div>
       </div>
-      <div class="face">
-        <div class="thumb" id="thumbWater"></div>
-        <label>💧 Damla — sevgilinin fotoğrafı</label>
-        <input type="file" id="fileWater" accept="image/*">
+
+      <button class="tile primary" data-go="play">
+        <span class="ic">▶</span>
+        <span class="tx"><b>OYNA</b><i>oda kur ya da koda katıl</i></span>
+      </button>
+
+      <div class="grid2">
+        <button class="tile" data-go="character"><span class="ic">🧍</span><span class="tx"><b>KARAKTER</b><i>fotoğraf · 3D model</i></span></button>
+        <button class="tile" data-go="controls"><span class="ic">🎮</span><span class="tx"><b>KONTROLLER</b><i>tuşları belirle</i></span></button>
       </div>
-    </div>
+      <div class="grid3">
+        <button class="tile sm" id="levelsBtn"><span class="ic">🗺</span><span class="tx"><b>BÖLÜMLER</b></span></button>
+        <button class="tile sm" data-go="howto"><span class="ic">ⓘ</span><span class="tx"><b>NASIL</b></span></button>
+        <button class="tile sm" data-go="options"><span class="ic">⚙</span><span class="tx"><b>AYARLAR</b></span></button>
+      </div>
+    </section>
 
-    <div class="secTitle">🎮 Oyun Mekanikleri — Tuşları Kendin Belirle</div>
-    <div class="ctrls">
-      <div class="ctrlcol"><h3 style="color:#ff9d3f">🔥 ALEV (sen)</h3><div id="ctrlFire"></div></div>
-      <div class="ctrlcol"><h3 style="color:#5fd8ff">💧 DAMLA (sevgilin)</h3><div id="ctrlWater"></div></div>
-    </div>
-    <div class="hint">Bir kutuya tıkla, sonra istediğin klavye tuşuna bas. Oyun kumandası bağlıysa otomatik çalışır. (P duraklat · R yeniden · M ses — sabit)</div>
+    <!-- ===== OYNA ===== -->
+    <section class="page hidden" data-page="play">
+      <div class="phead"><button class="back" data-go="main">←</button><h2>OYNA</h2></div>
 
-    <label class="modebox"><input type="checkbox" id="fotoFigur"> 🧍 Foto figür modu (fotoğraf tüm gövde olsun)</label>
-    <div class="secTitle">🖵 Ekran düzeni</div>
-    <div class="modebox">
-      <label><input type="radio" name="viewMode" value="auto" checked> Akıllı</label>
-      <label><input type="radio" name="viewMode" value="always"> Hep bölünmüş</label>
-      <label><input type="radio" name="viewMode" value="pip"> Köşe penceresi</label>
-    </div>
-    <div class="hint">
-      <b>Akıllı:</b> uzaklaşınca ekran kendiliğinden ikiye bölünür, yan yana gelince birleşir.<br>
-      <b>Köşe penceresi:</b> ana ekran 🔥 Alev, sağ üstteki küçük pencerede 💧 Damla görünür.
-    </div>
+      <button class="tile primary" id="hostBtn">
+        <span class="ic">🏠</span>
+        <span class="tx"><b>ODA KUR</b><i>🔥 Alev'i sen oynarsın · kod oluşur</i></span>
+      </button>
 
-    <div class="hint">
-      Kendi tasarladığın 3D karakteri yükle (.glb) — Ready Player Me / VRoid / Blender ile yapabilirsin:<br>
-      🔥 <input type="file" id="modelFire" accept=".glb,.gltf"> &nbsp; 💧 <input type="file" id="modelWater" accept=".glb,.gltf">
-    </div>
-    <p style="font-size:12px;color:#777">Kamera: fare sürükle · tekerlek yakınlaş</p>
-    <div class="secTitle">📱 İki ayrı cihazdan oyna (online)</div>
-    <div class="modebox">
-      <button class="btn" id="hostBtn" style="background:#20242e;color:#ff9d3f;margin-top:0">ODA KUR (🔥 Alev)</button>
-      <input id="joinCode" placeholder="ODA KODU" maxlength="4"
-             style="width:110px;padding:10px;border-radius:10px;border:1px solid #3a3f4d;background:#20242e;color:#fff;text-transform:uppercase;text-align:center;font-weight:700;letter-spacing:2px">
-      <button class="btn" id="joinBtn" style="background:#20242e;color:#5fd8ff;margin-top:0">KATIL (💧 Damla)</button>
-    </div>
-    <div class="hint" id="netStatus">Oda kuran Alev'i, katılan Damla'yı oynar. Bağlantı doğrudan iki cihaz arasındadır.</div>
+      <div class="joinRow">
+        <input id="joinCode" placeholder="KOD" maxlength="4" autocomplete="off">
+        <button class="tile primary water" id="joinBtn">
+          <span class="ic">🔑</span><span class="tx"><b>KATIL</b><i>💧 Damla'yı oynarsın</i></span>
+        </button>
+      </div>
 
-    <button class="btn" id="startBtn">TEK CİHAZDA BAŞLA</button>
-    <button class="btn" id="levelsBtn" style="background:#20242e;color:#cfd2dd;margin-left:8px">BÖLÜM SEÇ</button>
+      <div class="note" id="netStatus">Oda kuran <b style="color:#ff9d3f">Alev</b>'i, katılan <b style="color:#5fd8ff">Damla</b>'yı oynar. Bağlantı doğrudan iki cihaz arasındadır.</div>
+
+      <div id="soloWrap">
+        <div class="sep">veya</div>
+        <button class="tile" id="startBtn"><span class="ic">🖥</span><span class="tx"><b>TEK CİHAZDA OYNA</b><i>aynı klavyede iki kişi</i></span></button>
+      </div>
+      <div class="note hidden" id="soloBlocked">📱 Telefonda iki kişilik tek-cihaz modu kapalıdır: iki oyuncunun dokunmatik tuşları ekrana sığmıyor. Yukarıdan oda kurup ikinci telefondan katılın.</div>
+    </section>
+
+    <!-- ===== KARAKTER ===== -->
+    <section class="page hidden" data-page="character">
+      <div class="phead"><button class="back" data-go="main">←</button><h2>KARAKTER</h2></div>
+      <div class="faces">
+        <div class="face">
+          <div class="thumb" id="thumbFire"></div>
+          <label>🔥 Alev</label>
+          <input type="file" id="fileFire" accept="image/*">
+        </div>
+        <div class="face">
+          <div class="thumb" id="thumbWater"></div>
+          <label>💧 Damla</label>
+          <input type="file" id="fileWater" accept="image/*">
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="fotoFigur"> Foto figür modu <i>(fotoğraf tüm gövde olsun)</i></label>
+      <div class="note">
+        Kendi 3D karakterini yükle (.glb) — Ready Player Me / VRoid / Blender:<br>
+        🔥 <input type="file" id="modelFire" accept=".glb,.gltf"> &nbsp; 💧 <input type="file" id="modelWater" accept=".glb,.gltf">
+      </div>
+    </section>
+
+    <!-- ===== KONTROLLER ===== -->
+    <section class="page hidden" data-page="controls">
+      <div class="phead"><button class="back" data-go="main">←</button><h2>KONTROLLER</h2></div>
+      <div class="ctrls">
+        <div class="ctrlcol"><h3 style="color:#ff9d3f">🔥 ALEV</h3><div id="ctrlFire"></div></div>
+        <div class="ctrlcol"><h3 style="color:#5fd8ff">💧 DAMLA</h3><div id="ctrlWater"></div></div>
+      </div>
+      <div class="note">Bir kutuya dokun, sonra istediğin tuşa bas. Oyun kumandası bağlıysa otomatik çalışır.<br>
+        Sabit: <b>Esc</b> ayarlar · <b>R</b> bölümü yeniden · <b>M</b> ses. Telefonda dokunmatik tuşlar kendiliğinden çıkar.</div>
+    </section>
+
+    <!-- ===== AYARLAR ===== -->
+    <section class="page hidden" data-page="options">
+      <div class="phead"><button class="back" data-go="main">←</button><h2>AYARLAR</h2></div>
+      <div class="secTitle">Ekran düzeni</div>
+      <div class="modebox">
+        <label><input type="radio" name="viewMode" value="auto" checked> Akıllı</label>
+        <label><input type="radio" name="viewMode" value="always"> Hep bölünmüş</label>
+        <label><input type="radio" name="viewMode" value="pip"> Köşe penceresi</label>
+      </div>
+      <div class="note">
+        <b>Akıllı:</b> uzaklaşınca ekran ikiye bölünür, yan yana gelince birleşir.<br>
+        <b>Köşe penceresi:</b> ana ekranda sen, sağ üstte eşin. <i>(çevrim içi oynarken bu düzen kendiliğinden kullanılır)</i>
+      </div>
+      <div class="note">Oyun içinde <b>Esc</b> ile bu ayarlara dönebilirsin.</div>
+    </section>
+
+    <!-- ===== NASIL OYNANIR ===== -->
+    <section class="page hidden" data-page="howto">
+      <div class="phead"><button class="back" data-go="main">←</button><h2>NASIL OYNANIR</h2></div>
+      <div class="note" style="text-align:left;line-height:1.75">
+        🔥 <b style="color:#ff9d3f">Alev</b> lavda güvenli, <b>suda ölür</b>. Meşaleleri o yakar.<br>
+        💧 <b style="color:#5fd8ff">Damla</b> suda güvenli, <b>lavda ölür</b>. Valfleri o açar.<br>
+        ⚙ Testere ve balta <b>ikinizi de öldürür</b> — zamanlayıp geçin.<br>
+        🚪 Bazı geçitler yalnızca <b>ikiniz birlikte</b> plakalara basınca açılır.<br>
+        💎 Her bölümde 3 elmas gizli (toplam 24).<br>
+        🏁 Bölümü bitirmek için <b>ikiniz de</b> kendi renk pedinize basın.<br>
+        👻 Son bölümlerde <b>Külge</b> peşinize düşer — durmayın.
+      </div>
+    </section>
+
   </div>
 </div>
 

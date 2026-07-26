@@ -16,6 +16,29 @@ buildCtrls('ctrlFire', bindFire);
 buildCtrls('ctrlWater', bindWater);
 buildTouch();
 
+// --- menu sayfalari ---
+// Her secenek kendi sayfasinda; ayni anda yalnizca biri gorunur.
+function showPage(name) {
+  document.querySelectorAll('#startScreen .page').forEach((p) => {
+    p.classList.toggle('hidden', p.dataset.page !== name);
+  });
+  document.getElementById('startScreen').scrollTop = 0;
+}
+document.querySelectorAll('#startScreen [data-go]').forEach((b) => {
+  b.addEventListener('click', () => showPage(b.dataset.go));
+});
+
+/**
+ * Telefonda tek cihazda iki kisilik oyun KAPALI: iki oyuncunun dokunmatik
+ * kontrolleri kucuk ekrana sigmiyor. Bu cihazlarda yalnizca cevrim ici
+ * (oda kodu) oynanis sunulur.
+ */
+const isPhone = matchMedia('(pointer: coarse)').matches && Math.min(innerWidth, innerHeight) < 820;
+if (isPhone) {
+  el('soloWrap').classList.add('hidden');
+  el('soloBlocked').classList.remove('hidden');
+}
+
 // --- fotograf ve .glb model yukleme ---
 el('fileFire').addEventListener('change', (e) => {
   const f = e.target.files[0];
@@ -126,6 +149,7 @@ net.onStatus = (s) => {
     netStatus('Bağlanıyor…');
   } else if (s === 'bagli') {
     netStatus('✅ Bağlandı! Oyun başlıyor…');
+    el('soloWrap').classList.add('hidden');
     startOnline();
   } else if (s === 'hata') {
     netStatus(`⚠ Bağlantı hatası: ${net.error}<br>
