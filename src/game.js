@@ -719,9 +719,16 @@ function tick() {
 addEventListener('keydown', (e) => {
   if (!S.started || S.won) return;
   if (isCutsceneOpen()) return;          // ara sahne acikken sistem tuslari calismasin
-  if (e.code === 'KeyP') {
+  if (e.code === 'Escape' || e.code === 'KeyP') {
     S.paused = !S.paused;
-    if (S.paused) el('pauseLevel').textContent = LEVEL_NAMES[S.curLevel] || '';
+    if (S.paused) {
+      el('pauseLevel').textContent = LEVEL_NAMES[S.curLevel] || '';
+      // ayar kutulari o anki durumu gostersin
+      const mode = S.view === 'pip' ? 'pip' : S.splitMode;
+      const radio = document.querySelector(`input[name="pauseView"][value="${mode}"]`);
+      if (radio) radio.checked = true;
+      el('pauseSound').checked = !S.muted;
+    }
     el('pauseScreen').classList.toggle('hidden', !S.paused);
   }
   if (e.code === 'KeyR') {

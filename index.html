@@ -30,14 +30,24 @@
 
 <div id="pauseScreen" class="overlay hidden">
   <div class="card">
-    <h1>⏸ Durakladı</h1>
+    <h1>⚙ Ayarlar</h1>
     <p id="pauseLevel" style="color:#8ab"></p>
-    <p><b>P</b> devam · <b>R</b> bölümü yeniden başlat · <b>M</b> ses aç/kapa</p>
-    <div>
+
+    <div class="secTitle">🖵 Ekran düzeni</div>
+    <div class="modebox">
+      <label><input type="radio" name="pauseView" value="auto"> Akıllı</label>
+      <label><input type="radio" name="pauseView" value="always"> Hep bölünmüş</label>
+      <label><input type="radio" name="pauseView" value="pip"> Köşe penceresi</label>
+    </div>
+
+    <label class="modebox"><input type="checkbox" id="pauseSound" checked> 🔊 Ses açık</label>
+
+    <div style="margin-top:12px">
       <button class="btn" id="resumeBtn">DEVAM ET</button>
       <button class="btn" id="restartBtn" style="background:#20242e;color:#cfd2dd">BÖLÜMÜ YENİDEN</button>
       <button class="btn" id="pauseLevelsBtn" style="background:#20242e;color:#cfd2dd">BÖLÜM SEÇ</button>
     </div>
+    <div class="hint"><b>Esc</b> ayarları aç/kapat · <b>R</b> bölümü yeniden · <b>M</b> ses</div>
   </div>
 </div>
 

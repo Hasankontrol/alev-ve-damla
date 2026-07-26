@@ -1,6 +1,6 @@
 import './style.css';
 import { S, solids, zones, gems, plates, torches, hazards } from './state.js';
-import { resumeAudio } from './audio.js';
+import { resumeAudio, setMute } from './audio.js';
 import { bindFire, bindWater, buildCtrls, buildTouch, showTouch, assignPads, keys } from './input.js';
 import { applyMode, loadFace, loadModel } from './entities.js';
 import { init, frame, renderFrame, loadLevel } from './game.js';
@@ -96,6 +96,18 @@ function resume() {
   S.paused = false;
   el('pauseScreen').classList.add('hidden');
 }
+// Ayarlar oyun sirasinda degistirilebilir; degisiklik aninda uygulanir.
+document.querySelectorAll('input[name="pauseView"]').forEach((radio) => {
+  radio.addEventListener('change', () => {
+    S.view = radio.value === 'pip' ? 'pip' : 'shared';
+    S.splitMode = radio.value === 'always' ? 'always' : 'auto';
+  });
+});
+el('pauseSound').addEventListener('change', (e) => {
+  setMute(!e.target.checked);
+  el('gems').style.opacity = S.muted ? 0.5 : 1;
+});
+
 el('resumeBtn').addEventListener('click', resume);
 el('restartBtn').addEventListener('click', () => { resume(); loadLevel(S.curLevel, { skipIntro: true }); });
 el('pauseLevelsBtn').addEventListener('click', () => { resume(); showLevelMenu(); });
